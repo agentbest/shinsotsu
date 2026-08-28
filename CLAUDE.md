@@ -13,7 +13,7 @@ Airtableの求人から**新卒・インターンだけ**を検索できる静�
 
 ```
 template.html / apply-template.html / data/jobs.json を編集
-  → node rebuild.js      （index.html・apply.html を再生成・件数を表示）
+  → node rebuild.js      （index.html・apply.html・1day.html を再生成・件数を表示）
   → commit & push        （数十秒で反映）
 ```
 
@@ -21,6 +21,7 @@ template.html / apply-template.html / data/jobs.json を編集
 |---|---|---|
 | `index.html` | `template.html` | `__JOBS_DATA__` ＝ 新卒・インターン求人の全項目 |
 | `apply.html` | `apply-template.html` | `__JOBS_MINI__` ＝ ID・企業名・職種名・年収**だけ** |
+| `1day.html` | `1day-template.html` | `__EVENTS_DATA__` ＝ 1day選考会の開催回（`node fetch-1day.js` で取得） |
 
 ## データ元と「新卒だけにする仕組み」
 
@@ -129,6 +130,31 @@ alter table public.applications add column if not exists grad_year text;
 - 卒業予定年の選択肢は `GRAD_YEARS`。年度が変わったら足す。
   ⚠ **古い年を消さない**（既卒の方が選べなくなるため）。
 - ⚠ **面談方法は「オンライン」「電話」の2つだけ。対面は載せない**（実際に受けていないため。jobsite と同じ方針）。
+
+## 1day選考会（`1day.html`）— 2026-08-28 新設
+
+新卒・インターン向けの1day選考会ページ。開催情報は Airtable「1day選考会」`tbl1J80CGqiOTvuf7`。
+`node fetch-1day.js` → `data/1day.json` → `node rebuild.js` → `1day.html` の順。
+**求人と違い、取得は毎回 Airtable から手で回す。**
+
+- 「公開ステータス」が**非公開・未設定**の回は `fetch-1day.js` の時点で落ちる（＝サイトに出ない）。
+- ⚠ **このテーブルは jobs.agent-best.net（中途）と共有している。**「区分」（2026-08-28追加・
+  `fldfhFRnZhuug3rl0`）で振り分ける。新卒・インターン＝このサイト、中途＝jobsite。
+  - `rebuild.js` の **`newGradOnly1day()`** が新卒・インターン以外を落とす。**jobsite 側には鏡写しの
+    `midCareerEvents()` がある。片方だけ直すと、同じ回が両サイトに出る／どちらにも出ない。**
+  - ⚠ **区分が空の回は中途扱いになり、このサイトには出ない**（求人の区分と同じ既定）。
+    新卒の回が出てこないときは、**まず Airtable の「区分」を疑う。いちばん気づきにくい事故。**
+    ビルド時に回名を挙げて警告が出る。
+  - 記入例の行（非公開）に運用メモを入れてある。**複製したら区分を必ず見直すこと。**
+- **申し込み先は自前の `apply.html`（就活サポート）。** jobsite は中途用の Airtable フォームに
+  送っているが、こちらは使わない。
+  - ⚠ **`apply.html?job=` に1day選考会のレコードIDを渡さないこと。** あの `job` は求人ID専用で、
+    渡すと申し込みデータの `job_id` に求人ではないIDが入る。だから1dayからは素の `apply.html` に送る。
+    **どの回に申し込んだかは、いまは事前面談で確認する運用。**
+    フォーム側に1day用の項目を足すなら、Supabase のテーブルごと直す話になるので事前に相談する。
+  - どの回のボタンから来たかは GA4 の `apply_click`（`data-evid`）で見る。
+- 掲載0件のときは「次回の開催を準備中です」の空状態が出る。**リンク切れにはならない。**
+- 導線はヘッダーのナビ／トップの「特集」帯／フッター／`apply.html` のナビとフッター。
 
 ## デザイン
 
