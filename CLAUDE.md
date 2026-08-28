@@ -5,7 +5,7 @@ Airtableの求人から**新卒・インターンだけ**を検索できる静�
 
 - 公開URL: https://shinsotsu.agent-best.net/ （GitHub Pages・HTTPS強制）
 - リポジトリ: **Public**（機密なし＝求人データ／テンプレ／rebuild.js のみ）
-- 2026-08-28に、jobsite をベースに新設。
+- 2026-08-28に、jobsite をベースに新設。DNS・`grad_year` 列とも同日に設定済み。
 
 ## ⚠ ビルドフロー（最重要）
 
@@ -63,18 +63,20 @@ jobsite にあった「雇用形態」は、新卒だとほぼ正社員とイン
 - ★（favorites）は中途サイトと共有される。**このサイトは自分の求人しか描画しない**ので、
   中途の★は表示されないだけで消えはしない。
 
-### ⚠ 未実施：`grad_year` 列の追加
+### `grad_year` 列（2026-08-28 追加済み）
 
-申し込みフォームは卒業予定年を `grad_year` で送るが、**`applications` テーブルにその列はまだ無い**。
-Supabase の SQL Editor で1行流せば有効になる。
+申し込みフォームは卒業予定年を `grad_year` で送る。**2026-08-28に列を追加済み**（`text`）。
 
 ```sql
 alter table public.applications add column if not exists grad_year text;
 ```
 
-**列が無いあいだも申し込みは落ちない。** 400が返って本文に `grad_year` が含まれていたら、
-卒業予定年を `message` の先頭に入れて送り直す退避が入っている（`apply-template.html` の `submit()`）。
-退避が動いたときは GA4 に `apply_fallback` が飛ぶ。**列を足したらこの退避は動かなくなる。**
+**列が無い環境でも申し込みは落ちない退避が残してある。** 400が返って本文に `grad_year` が
+含まれていたら、卒業予定年を `message` の先頭に入れて送り直す（`apply-template.html` の `submit()`）。
+退避が動いたときは GA4 に `apply_fallback` が飛ぶ。
+⚠ **`apply_fallback` が発生していたら、列が消えたか別プロジェクトを向いているということ。**
+
+⚠ **列を消さない。** 消すと退避に落ちて、卒業予定年が備考欄に紛れ込む（集計できなくなる）。
 
 ⚠ **`applications` に SELECT ポリシーを作らない。** 匿名キーは apply.html に書いてあるので、
 1つでも足すと応募者の氏名・生年月日・電話番号が全世界から読める（jobsite と同じ注意）。

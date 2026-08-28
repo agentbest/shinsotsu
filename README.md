@@ -39,4 +39,4 @@ python -m http.server 8000
 
 1. `rebuild.js` の `newGradOnly()` が「新卒サイトに中途を出さない」唯一の担保
 2. 対象卒業年は求人名から正規表現で拾っている（拾えないものは「通年・記載なし」）
-3. Supabase は中途サイトと共有。**集計は `source` で分ける**／`grad_year` 列の追加がまだ
+3. Supabase は中途サイトと共有。**集計は `source` で分ける**（`grad_year` 列は追加済み）
