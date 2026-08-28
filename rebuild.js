@@ -37,6 +37,18 @@ function build(dataFile, tplFile, outFile, placeholder, fallback, transform){
    Airtable 側に中途が混ざっていても、ここで必ず落としてから埋め込む。
    ⚠ この関数を外すと、中途求人が「新卒サイト」として公開される。 */
 const KEEP = ['新卒', 'インターン'];
+
+/* 掲載を終えた卒業年。**年度が変わったらここに足す**（例：27卒の募集が終わったら '27卒' を追加）。
+   対象卒業年がこのリストの値「だけ」の求人を落とす。
+   ⚠ 第二新卒・通年・未入力の求人は落とさない。中途サイトも 区分≠中途 で弾くので、
+      ここから外すと どちらのサイトにも出ない求人ができてしまう。 */
+const PAST_GRADS = ['26卒'];
+function seasonOver(job){
+  const g = job.gradYear;
+  if(!Array.isArray(g) || !g.length) return false;   // 未入力は判断できないので残す
+  return g.every(v => PAST_GRADS.includes(v));
+}
+
 function newGradOnly(jobs){
   /* ⚠ 区分が空の求人はこのサイトからは落ちるが、中途サイトには載る（あちらの既定が中途のため）。
      非対称なので、気づけるように名指しで警告する。 */
@@ -46,8 +58,16 @@ function newGradOnly(jobs){
     noKubun.slice(0, 10).forEach(j => console.log(`   - ${j.company || '企業名なし'} / ${j.position || j.title || j.id}`));
     if(noKubun.length > 10) console.log(`   …ほか ${noKubun.length - 10}件`);
   }
-  const kept = jobs.filter(j => KEEP.includes(j.kubun));
-  const dropped = jobs.length - kept.length;
+  const inScope = jobs.filter(j => KEEP.includes(j.kubun));
+
+  /* 募集が終わった卒業年を落とす */
+  const over = inScope.filter(seasonOver);
+  if(over.length){
+    console.log(`募集が終わった卒業年（${PAST_GRADS.join('・')}）を除外しました: ${over.length}件`);
+    over.forEach(j => console.log(`   - ${j.company || '企業名なし'} / ${(j.position || j.title || j.id).slice(0, 40)}`));
+  }
+  const kept = inScope.filter(j => !seasonOver(j));
+  const dropped = jobs.length - inScope.length;
   if(dropped > 0){
     const by = {};
     jobs.forEach(j => { if(!KEEP.includes(j.kubun)) by[j.kubun || '区分なし'] = (by[j.kubun || '区分なし']||0)+1; });
