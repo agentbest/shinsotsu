@@ -1260,16 +1260,23 @@ JOBS.forEach(j=>{
   /* 「法人営業（営業）」→「営業」。末尾の括弧が職種の大分類。プロフィールの希望職種に使う */
   const gm=String(j.jobCategory||"").match(/（([^（）]+)）\s*$/);
   j.jobGroup = gm?gm[1]:"";
-  /* 対象卒業年。求人名・見出し・応募資格から「27卒」「2027年卒」を拾う。
-     ⚠ 拾えなかった求人は「通年・記載なし」に入れる。卒業年で絞った人の目から消さないため。
+  /* 対象卒業年。Airtableの「対象卒業年」（jobs.json の gradYear）があれば、それをそのまま使う。
+     ⚠ フィールドが空のときだけ、求人名から「27卒」「2027年卒」を拾って推測する。
+        推測は求人名の表記に依存するので当てにしすぎない。Airtable側に入れるほど正確になる。
+     ⚠ どちらでも決まらない求人は「記載なし」に入れる。卒業年で絞った人の目から消さないため。
         データに無い年を勝手に当てはめない（件数を偽らないための仕様）。 */
-  const gtxt=[j.position,j.title,j.must].filter(Boolean).join(" ");
-  const ys=new Set();
-  for(const m of gtxt.matchAll(/20(2\d)\s*年?卒/g)) ys.add(m[1]+"卒");
-  for(const m of gtxt.matchAll(/(?<!\d)(2\d)\s*卒/g)) ys.add(m[1]+"卒");
-  j.gradYears=[...ys].sort();
-  if(/第二新卒/.test(gtxt)) j.gradYears.push("第二新卒");
-  if(!j.gradYears.length) j.gradYears=["通年・記載なし"];
+  const gField=Array.isArray(j.gradYear)?j.gradYear.filter(Boolean):(j.gradYear?[j.gradYear]:[]);
+  if(gField.length){
+    j.gradYears=gField;
+  }else{
+    const gtxt=[j.position,j.title,j.must].filter(Boolean).join(" ");
+    const ys=new Set();
+    for(const m of gtxt.matchAll(/20(2\d)\s*年?卒/g)) ys.add(m[1]+"卒");
+    for(const m of gtxt.matchAll(/(?<!\d)(2\d)\s*卒/g)) ys.add(m[1]+"卒");
+    j.gradYears=[...ys].sort();
+    if(/第二新卒/.test(gtxt)) j.gradYears.push("既卒・第二新卒");
+    if(!j.gradYears.length) j.gradYears=["記載なし"];
+  }
   j._hay = [j.company,j.position,j.title,j.jobCategory,(j.industry||[]).join(" "),j.location,j.jobContent,j.must,j.welcome,j.idealPerson,j.gradYears.join(" ")].filter(Boolean).join(" ").toLowerCase();
   j._ts = j.createdAt ? (Date.parse(j.createdAt)||0) : 0;
   j._lead = plainLead(j.jobContent || j.must || j.companyInfo || "");
