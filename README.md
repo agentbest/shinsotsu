@@ -1,0 +1,42 @@
+# 新卒・インターン求人検索（shinsotsu.agent-best.net）
+
+株式会社エージェントベストが運営する、**新卒・インターン向けの求人検索サイト**です。
+中途（転職）は [jobs.agent-best.net](https://jobs.agent-best.net/) が担当しています。
+
+## 更新のしかた
+
+```bash
+# 1. 求人データを差し替える（Airtable からのエクスポート）
+#    data/jobs.json  ※中途が混ざっていても rebuild が落とすのでそのままでよい
+
+# 2. 再生成
+node rebuild.js
+
+# 3. 確認（file:// では求人詳細の遷移が動かないので必ずHTTPで）
+python -m http.server 8000
+
+# 4. commit & push すると数十秒で反映される
+```
+
+`index.html` と `apply.html` は生成物です。**直接編集しないでください。**
+編集するのは `template.html` / `apply-template.html` / `data/jobs.json` です。
+
+## ファイル
+
+| ファイル | 中身 |
+|---|---|
+| `template.html` | 求人検索ページのテンプレート（CSS・JSはインライン。外部CDNは読み込まない） |
+| `apply-template.html` | 就活サポート申し込みフォームのテンプレート |
+| `data/jobs.json` | Airtable から取り出した求人データ（新卒・インターンだけを使う） |
+| `rebuild.js` | テンプレート＋データ → `index.html` / `apply.html` |
+| `assets/` | ヒーロー画像とOGP画像 |
+| `privacy.html` / `privacy-ad.html` / `terms.html` | プライバシーポリシー2種と利用規約 |
+
+## 設計の要点・注意点
+
+開発上の判断と踏んではいけない地雷は **`CLAUDE.md`** にまとめてあります。
+特に次の3つは先に読んでください。
+
+1. `rebuild.js` の `newGradOnly()` が「新卒サイトに中途を出さない」唯一の担保
+2. 対象卒業年は求人名から正規表現で拾っている（拾えないものは「通年・記載なし」）
+3. Supabase は中途サイトと共有。**集計は `source` で分ける**／`grad_year` 列の追加がまだ

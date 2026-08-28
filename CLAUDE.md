@@ -1,0 +1,137 @@
+# shinsotsu — 新卒・インターン求人サイト shinsotsu.agent-best.net
+
+Airtableの求人から**新卒・インターンだけ**を検索できる静的サイト「新卒・インターン求人検索」（求職者向け・一般公開）。
+マイページ（会員機能）と申し込みフォーム付き。**中途は jobs.agent-best.net の担当**（→ `C:\Users\user\jobsite\`）。
+
+- 公開URL: https://shinsotsu.agent-best.net/ （GitHub Pages・HTTPS強制）
+- リポジトリ: **Public**（機密なし＝求人データ／テンプレ／rebuild.js のみ）
+- 2026-08-28に、jobsite をベースに新設。
+
+## ⚠ ビルドフロー（最重要）
+
+**`index.html` と `apply.html` を直接編集しない。** 編集するのは `template.html` / `apply-template.html` / `data/jobs.json`。
+
+```
+template.html / apply-template.html / data/jobs.json を編集
+  → node rebuild.js      （index.html・apply.html を再生成・件数を表示）
+  → commit & push        （数十秒で反映）
+```
+
+| 生成物 | テンプレ | 差し込むもの |
+|---|---|---|
+| `index.html` | `template.html` | `__JOBS_DATA__` ＝ 新卒・インターン求人の全項目 |
+| `apply.html` | `apply-template.html` | `__JOBS_MINI__` ＝ ID・企業名・職種名・年収**だけ** |
+
+## データ元と「新卒だけにする仕組み」
+
+Airtable base「人材紹介事業」`appYkc36EvioYoL1A` / table「求人DB（求人票）」`tblyPZZasXTM2tcrV`。
+**jobsite と同じ `data/jobs.json`（456件スナップショット）をそのまま置いている。**
+
+`rebuild.js` の **`newGradOnly()`** が `kubun` が「新卒」「インターン」**以外**を落としてから埋め込む。
+2026-08-28時点の内訳は **新卒29件・インターン5件（9社）**。
+
+- ⚠ **`newGradOnly()` を外すと、中途422件が新卒サイトとして公開される。**
+- jobsite 側には鏡写しの `midCareerOnly()` があり、そちらは新卒・インターンを落とす。
+  **どちらか片方だけ直すと、同じ求人が両方に出る／どちらにも出ない状態になる。**
+- 求人を増やしたら `data/jobs.json` を差し替えて `node rebuild.js` するだけでよい。件数は自動で追従する。
+
+## 対象卒業年（このサイト固有）
+
+`template.html` の求人加工で、**求人名・見出し・応募資格から「27卒」「2027年卒」を正規表現で拾って** `j.gradYears` に入れている。
+
+- 「第二新卒」を含むものには `第二新卒` も付く。
+- ⚠ **1つも拾えなかった求人は「通年・記載なし」に入れる。** 卒業年で絞った人の目から消さないため。
+  データに無い年を勝手に当てはめない（件数を偽らないための仕様）。
+- ⚠ **Airtable 側の求人名から卒業年の表記が消えると、この分類は静かに効かなくなる。**
+  ちゃんと分類したいなら、Airtable に「対象卒業年」フィールドを足して `jobs.json` に入れるのが本筋。
+
+絞り込みは **対象卒業年／区分（新卒・インターン）／勤務地エリア／職種カテゴリ／業界／年収下限／リモート可**。
+jobsite にあった「雇用形態」は、新卒だとほぼ正社員とインターンの2つで区分と重複するため外した。
+
+## Supabase は jobsite と共有している
+
+**新しいプロジェクトは作っていない。** マイページ・申し込みとも `jobsite-tokyo`（`jvdnabtpxcyfnogdulea`）を使う。
+
+| | 扱い |
+|---|---|
+| 会員（auth / profiles / favorites / documents） | **中途サイトと共通**。1つのアカウントで両方使える |
+| 申し込み（applications） | **同じテーブル**。`source` が `"shinsotsu"` なら新卒サイト経由 |
+
+- ⚠ **集計するときは必ず `source` で分ける。** 混ぜると新卒と中途の応募が同じ数字になる。
+- ⚠ **`experience_job` には「経験職種」ではなく「興味のある職種」が入る**（新卒には職歴が無いため）。
+- `current_salary` は聞いていないので常に null。
+- ★（favorites）は中途サイトと共有される。**このサイトは自分の求人しか描画しない**ので、
+  中途の★は表示されないだけで消えはしない。
+
+### ⚠ 未実施：`grad_year` 列の追加
+
+申し込みフォームは卒業予定年を `grad_year` で送るが、**`applications` テーブルにその列はまだ無い**。
+Supabase の SQL Editor で1行流せば有効になる。
+
+```sql
+alter table public.applications add column if not exists grad_year text;
+```
+
+**列が無いあいだも申し込みは落ちない。** 400が返って本文に `grad_year` が含まれていたら、
+卒業予定年を `message` の先頭に入れて送り直す退避が入っている（`apply-template.html` の `submit()`）。
+退避が動いたときは GA4 に `apply_fallback` が飛ぶ。**列を足したらこの退避は動かなくなる。**
+
+⚠ **`applications` に SELECT ポリシーを作らない。** 匿名キーは apply.html に書いてあるので、
+1つでも足すと応募者の氏名・生年月日・電話番号が全世界から読める（jobsite と同じ注意）。
+
+## 申し込みフォーム（jobsite との違い）
+
+4ステップの建て付けは同じ。**設問だけ新卒向けに差し替えてある。**
+
+| | jobsite（中途） | このサイト（新卒） |
+|---|---|---|
+| STEP2 の必須 | 直近の経験職種 | **卒業予定年** |
+| STEP2 の任意 | 現在の年収 | **興味のある職種** |
+| STEP4 | ご希望の転職時期 | **ご希望の面談時期** |
+| 見出し | 転職支援サービスに申し込む | **就活サポートに申し込む** |
+
+- 卒業予定年の選択肢は `GRAD_YEARS`。年度が変わったら足す。
+  ⚠ **古い年を消さない**（既卒の方が選べなくなるため）。
+- ⚠ **面談方法は「オンライン」「電話」の2つだけ。対面は載せない**（実際に受けていないため。jobsite と同じ方針）。
+
+## デザイン
+
+jobsite と同じ構成（左サイドバーの絞り込み＋1件1行の横長カード＋ページネーション＋別ページ相当の求人詳細）。
+**違いはアクセント色とヒーローだけ。**
+
+- アクセントを藍からスカーレット（`#C7332A` / ダークは `#F0897E`）に変えた。
+  **学生向けLP [student.agent-best.net] が白×赤なので、学生向けの世界観を揃えるため。**
+  CTAの山吹（`--cta`）はそのまま＝赤×金。
+- ヒーローのスクリムも藍から深い赤茶へ。
+- ヒーロー素材は **Pexels 8101928**（Pexels License＝商用可・クレジット不要・改変可）。
+  2400×1600 の上から250pxを落として 2.46:1 に切り出し、1600×650 に縮小。
+  ⚠ **ここは中途サイトと逆で、人物が写っている写真を選んでいる。** 読者が学生で、
+  写っている人の年齢が読者と近いほうが自分ごとになるため。
+- OGP画像 `assets/ogp.jpg` は HTML＋Chromeヘッドレスの `--screenshot`（1200×630）で生成。
+
+## 相互リンク
+
+- フッターの「専門ページ」から [学生向けキャリア支援](https://student.agent-best.net/) と
+  [中途（転職）の求人を探す](https://jobs.agent-best.net/) へ。
+- ⚠ **学生向けLP（`agentbest/student-career`）の「求人を探す」は、2026-08-28まで jobs.agent-best.net を指していた。**
+  jobs から新卒を外した時点でその案内は実態と合わなくなったので、このサイトへ向け直してある。
+  **jobs 側の掲載範囲を変えるときは、学生LPの導線も必ず一緒に見直す。**
+
+## GA4
+
+jobsite と同じ測定ID `G-1XXMP8Y1B4`（ストリームが agent-best.net 全サブドメイン）。
+**同じプロパティなので、サブドメイン間の回遊がつながる。** イベント名も jobsite と共通。
+新卒サイトだけを見たいときは、レポートで**ホスト名 `shinsotsu.agent-best.net` で絞る**。
+
+## push のルール（jobsite と同じ）
+
+- ローカルで **`node rebuild.js` を通してブラウザ確認してから** commit & push。コミットメッセージは日本語。
+- ローカル確認は `python -m http.server` などHTTPで開く（`file://` だと `history.pushState` が効かない）。
+- **以下に触れるときは必ず止まって事前確認する**:
+  1. ドメイン・DNS・CNAME
+  2. **個人情報・フォーム・認証**（マイページ、RLS、申し込みフォーム）
+  3. 費用が発生する変更
+  4. 既存ページ・データの削除、求人データの一括置換
+  5. 複数リポジトリへの一括変更
+- Publicリポジトリ。push前にトークン・APIキーの混入をgrepで確認する
+  （**Supabase の Secret key が入っていないこと**を特に確認。publishable key は公開前提なので可）。

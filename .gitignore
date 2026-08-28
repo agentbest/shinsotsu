@@ -1,0 +1,20 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# エディタ
+.vscode/
+.idea/
+
+# 一時ファイル
+*.tmp
+*.log
+
+# Airtable のトークン（このリポジトリは Public なので絶対にコミットしない）
+airtable.local.json
+.env
+.env.*
