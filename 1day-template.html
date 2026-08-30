@@ -279,6 +279,11 @@
   .final .cta-note{margin-left:auto; margin-right:auto}
 
   /* ---------- footer ---------- */
+  .line-badge{display:inline-block; line-height:0}
+  .line-badge img{display:block; width:116px; height:36px}
+  .line-badge:hover{opacity:.82}
+  .foot__line{display:flex; flex-direction:column; gap:8px; align-items:flex-start; margin:18px 0 4px}
+  .foot__line p{margin:0; font-size:12.5px; color:var(--ink-3)}
   .site-foot{border-top:1px solid var(--line); background:var(--surface); margin-top:32px}
   .foot__inner{max-width:var(--maxw); margin:0 auto; padding:30px 20px 40px; display:grid; gap:14px}
   .foot__brand strong{display:block; font-size:14px; font-weight:800; margin-bottom:4px}
@@ -571,6 +576,10 @@
       <a href="https://student.agent-best.net/" target="_blank" rel="noopener">学生向けキャリア支援</a>
       <a href="https://jobs.agent-best.net/" target="_blank" rel="noopener">中途（転職）の求人を探す</a>
     </nav>
+    <div class="foot__line">
+      <p>参加を迷っている段階でも、LINEで質問だけいただけます。</p>
+      <a class="line-badge" href="https://lin.ee/RUrPtec" target="_blank" rel="noopener noreferrer" data-line-cta="shinsotsu-1day" aria-label="LINEで友だち追加する"><img src="https://scdn.line-apps.com/n/line_add_friends/btn/ja.png" alt="友だち追加" width="116" height="36" loading="lazy" decoding="async"></a>
+    </div>
     <p class="foot__copy">&copy; 株式会社エージェントベスト</p>
   </div>
 </footer>
@@ -714,6 +723,15 @@ renderEvents();
 $("#applyBtn").href = applyUrl();
 $("#applyBtn").dataset.evid = (EVENTS.find(e => e.status !== "closed") || {}).id || "none";
 $("#heroApply").addEventListener("click", () => track("oneday_cta_click", {location:"hero"}));
+</script>
+<script>
+  /* LINE友だち追加のクリックをGA4へ。 */
+  document.addEventListener('click', function(e){
+    var a = e.target && e.target.closest && e.target.closest('[data-line-cta]');
+    if(a && typeof window.gtag === 'function'){
+      window.gtag('event','line_add_friend',{placement:a.getAttribute('data-line-cta'), page_path:location.pathname});
+    }
+  });
 </script>
 </body>
 </html>
