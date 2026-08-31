@@ -131,7 +131,18 @@ alter table public.applications add column if not exists grad_year text;
   ⚠ **古い年を消さない**（既卒の方が選べなくなるため）。
 - ⚠ **面談方法は「オンライン」「電話」の2つだけ。対面は載せない**（実際に受けていないため。jobsite と同じ方針）。
 
-## 1day選考会（`1day.html`）— 2026-08-28 新設
+## 1day選考会（`1day.html` ＋ 検索結果1位のPR枠）— 2026-08-28 新設 / 2026-09-01 導線変更
+
+⚠ **2026-09-01に導線を作り替えた。** 開催数が少ないのにナビ・特集行・フッター・専用ページと4か所を
+占めていたため、**ナビ・一覧上部の特集行・フッターからは外し、検索結果の1位に固定で出るPR枠に一本化**した。
+専用ページ `1day.html` は残っていて、PR枠のリンク先になっている（ナビからは辿れない）。
+
+- PR枠は `template.html` の `prSlotHtml()`。**1ページ目のときだけ**先頭に差し込む。
+- 開催があるときは日程・参加企業を出して `1day.html` へ、無いときは「開催の案内を受け取る」で
+  `apply.html` へ送る（**常に表示する**）。
+- PR枠に出すデータは `rebuild.js` の `onedayMini()` が `__ONEDAY_MINI__` に差し込む（直近3件）。
+  **`data/1day.json` を更新したら `node rebuild.js` を回すこと。**
+
 
 新卒・インターン向けの1day選考会ページ。開催情報は Airtable「1day選考会」`tbl1J80CGqiOTvuf7`。
 `node fetch-1day.js` → `data/1day.json` → `node rebuild.js` → `1day.html` の順。
