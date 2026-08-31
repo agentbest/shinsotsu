@@ -28,8 +28,10 @@ python -m http.server 8000
 | `template.html` | 求人検索ページのテンプレート（CSS・JSはインライン。外部CDNは読み込まない） |
 | `apply-template.html` | 就活サポート申し込みフォームのテンプレート |
 | `data/jobs.json` | Airtable から取り出した求人データ（新卒・インターンだけを使う） |
+| `data/logos.json` | 企業ロゴの対応表（企業名 → `assets/logos/…` のパス） |
 | `rebuild.js` | テンプレート＋データ → `index.html` / `apply.html` |
-| `assets/` | ヒーロー画像とOGP画像 |
+| `fetch-logos.js` | Airtable「求人DB（企業）」のロゴ列から画像を取り込み直す |
+| `assets/` | ヒーロー画像・OGP画像・`logos/`（企業ロゴ） |
 | `privacy.html` / `privacy-ad.html` / `terms.html` | プライバシーポリシー2種と利用規約 |
 
 ## 設計の要点・注意点

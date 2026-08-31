@@ -171,6 +171,21 @@ jobsite と同じ構成（左サイドバーの絞り込み＋1件1行の横長�
   写っている人の年齢が読者と近いほうが自分ごとになるため。
 - OGP画像 `assets/ogp.jpg` は HTML＋Chromeヘッドレスの `--screenshot`（1200×630）で生成。
 
+## 企業ロゴ（求人カード・求人詳細）— 2026-08-31 追加
+
+流れは **Airtable「求人DB（企業）」のロゴ列 → `node fetch-logos.js` → `assets/logos/` ＋ `data/logos.json`
+→ `node rebuild.js` の `attachLogos()` が求人1件ずつに `logo` を差し込む → `logoHtml(j)`**。
+画像が無い企業は社名の頭文字タイル（`coInitial`）。掲載24件のうち**14件にロゴが出る**。
+
+- ⚠ **jobsite（中途）と完全に鏡写し。** `attachLogos()`・`logoHtml()`・`assets/logos/`・`data/logos.json` が
+  両方にある。**片方だけ直すと、同じ企業のロゴが片方のサイトにだけ出る。**
+- ⚠ **ロゴを `data/jobs.json` に書かない。** jobs.json は取り直すたび丸ごと入れ替わるので毎回消える。
+  対応表は `data/logos.json`（企業名 → パス）に分けてある。**企業名の完全一致で引いている。**
+- ⚠ **Airtable の添付URLは数時間で失効する。** 直接参照せず、必ず画像をリポジトリに取り込む。
+- ⚠ **外部の favicon サービスは使わない**（訪問者がどの求人を見たかが第三者に渡る）。
+- `assets/logos/` には中途サイトと同じ22社分を置いてある（新卒で使っていない社の分も含む）。
+  新卒求人が増えたときにそのまま出るようにするため。
+
 ## 相互リンク
 
 - フッターの「専門ページ」から [学生向けキャリア支援](https://student.agent-best.net/) と
