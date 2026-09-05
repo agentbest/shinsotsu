@@ -31,7 +31,7 @@ python -m http.server 8000
 | `data/logos.json` | 企業ロゴの対応表（企業名 → `assets/logos/…` のパス） |
 | `rebuild.js` | テンプレート＋データ → `index.html` / `apply.html` |
 | `fetch-logos.js` | Airtable「求人DB（企業）」のロゴ列から画像を取り込み直す |
-| `data/employees.json` | 従業員数の対応表（企業名 → Airtableの原文） |
+| `data/employees.json` | 従業員数の対応表（企業名 → `{raw:原文, n:人数}`） |
 | `fetch-employees.js` | Airtable「求人DB（企業）」の従業員数列を取り込み直す |
 | `assets/` | ヒーロー画像・OGP画像・`logos/`（企業ロゴ） |
 | `privacy.html` / `privacy-ad.html` / `terms.html` | プライバシーポリシー2種と利用規約 |
