@@ -5,6 +5,9 @@
 
 ## SQL（Supabase → SQL Editor で実行）
 
+> **2026-09-05 実行済み**（本番 `jobsite-tokyo`）。REST で `select=university,...` が 42703 ではなく `[]` を返すことを確認。
+> 列を足し直す必要が出たときだけ再実行する（`if not exists` なので二重実行しても無害）。
+
 ```sql
 -- 学生向けプロフィール項目（すべて任意）。既存の列・RLS はそのまま。
 alter table public.profiles add column if not exists university            text;    -- 大学（自由入力）
