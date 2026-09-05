@@ -26,7 +26,7 @@ template.html / apply-template.html / data/jobs.json を編集
 ## データ元と「新卒だけにする仕組み」
 
 Airtable base「人材紹介事業」`appYkc36EvioYoL1A` / table「求人DB（求人票）」`tblyPZZasXTM2tcrV`。
-**jobsite と同じ `data/jobs.json`（456件スナップショット）をそのまま置いている。**
+**`data/jobs.json` は、jobsite の `data/jobs.json`（Airtable全件・56MB・jobsite側では .gitignore）から新卒・インターンだけを抜いた41件（2026-09-06）。** jobsite の全件ファイルをそのまま置くと重すぎるので、こちらは区分≠中途のサブセットを置く。取り直しは jobsite で `node fetch-jobs.js` → 区分で抜いてここへコピー → `node rebuild.js`。
 
 `rebuild.js` の **`newGradOnly()`** が `kubun` が「新卒」「インターン」**以外**を落としてから埋め込む。
 2026-08-28時点の内訳は **新卒29件・インターン5件（9社）**。
