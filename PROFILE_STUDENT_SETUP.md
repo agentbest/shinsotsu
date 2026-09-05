@@ -13,7 +13,7 @@ alter table public.profiles add column if not exists hometown              text;
 alter table public.profiles add column if not exists residence             text;    -- 現住所（都道府県／海外）
 alter table public.profiles add column if not exists desired_industries    text[];  -- 希望業界（求人の「業界」の値）
 alter table public.profiles add column if not exists work_styles           text[];  -- 希望する働き方
-alter table public.profiles add column if not exists desired_company_sizes text[];  -- 希望する企業規模（EMP_BANDS のラベル）
+alter table public.profiles add column if not exists desired_company_sizes text[];  -- 希望する企業規模（大企業／メガベンチャー・ミドルベンチャー／中小・老舗／ベンチャー・スタートアップ）
 ```
 
 RLS は行単位（「本人のプロフィールのみ」）なので、列を足しても追加の設定は不要。

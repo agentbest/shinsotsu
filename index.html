@@ -2414,7 +2414,15 @@ const INDUSTRY_WANT=(()=>{
   JOBS.forEach(j=>(j.industry||[]).forEach(v=>m.set(v,(m.get(v)||0)+1)));
   return [...m.entries()].sort((a,b)=>b[1]-a[1]);
 })();
-const SIZE_WANT=EMP_BANDS.map(b=>[b.label, JOBS.filter(j=>j.empBand===b.label).length]);
+/* 企業規模は従業員数の段階ではなく、学生の言葉で聞く（2026-09-05・松岡さん指示）。
+   検索に流すときは従業員数の段階へ近似で変換する（EMP_BANDS のラベル）。老舗とスタートアップは
+   人数では分けられないので重なる。厳密な分類ではなく「どんな会社を志向しているか」の希望として受け取る。 */
+const SIZE_WANT=[
+  ["大企業",                       ["1,001名以上"]],
+  ["メガベンチャー・ミドルベンチャー",["301〜1,000名","1,001名以上"]],
+  ["中小・老舗",                   ["〜50名","51〜100名","101〜300名"]],
+  ["ベンチャー・スタートアップ",   ["〜50名","51〜100名","101〜300名"]]
+];
 const JOB_GROUPS=(()=>{
   const m=new Map();
   JOBS.forEach(j=>{ if(j.jobGroup) m.set(j.jobGroup,(m.get(j.jobGroup)||0)+1); });
@@ -2575,9 +2583,9 @@ function profileHtml(){
       <div class="pf__chips">${WORK_STYLE_OPTS.map(g=>
         `<label class="pf__chip"><input type="checkbox" data-ws="${esc(g)}"${ws.has(g)?" checked":""}><span>${esc(g)}</span></label>`
       ).join("")}</div></div>
-    <div class="pf"><span class="pf__t">希望する企業規模（従業員数・複数選べます）</span>
-      <div class="pf__chips">${SIZE_WANT.map(([g,c])=>
-        `<label class="pf__chip"><input type="checkbox" data-size="${esc(g)}"${size.has(g)?" checked":""}><span>${esc(g)}${c?`<span class="cnt">${c}</span>`:""}</span></label>`
+    <div class="pf"><span class="pf__t">希望する企業規模（複数選べます）</span>
+      <div class="pf__chips">${SIZE_WANT.map(([g])=>
+        `<label class="pf__chip"><input type="checkbox" data-size="${esc(g)}"${size.has(g)?" checked":""}><span>${esc(g)}</span></label>`
       ).join("")}</div></div>
     ${docsHtml()}
     ${hasConsentCols?`<div class="pf"><span class="pf__t">求人のご案内</span>
@@ -2658,7 +2666,10 @@ function applyProfileSearch(){
   JOBS.forEach(j=>{ if(j.jobGroup&&j.jobCategory&&p.desired_jobs.includes(j.jobGroup)) cats.add(j.jobCategory); });
   pick("jobCategory",[...cats]);
   pick("industry",p.desired_industries);
-  pick("empBand",p.desired_company_sizes);
+  /* 企業規模：4分類 → 従業員数の段階に近似変換（重なりは和集合） */
+  const bands=new Set();
+  SIZE_WANT.forEach(([g,list])=>{ if(p.desired_company_sizes.includes(g)) list.forEach(x=>bands.add(x)); });
+  pick("empBand",[...bands]);
   /* 希望勤務地：ブロック → 実際に求人がある都道府県に展開して絞り込む */
   const prefs=new Set();
   AREA_BLOCKS.forEach(([name,list])=>{ if(p.desired_areas.includes(name)) list.forEach(x=>prefs.add(x)); });
