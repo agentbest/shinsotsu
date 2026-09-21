@@ -240,6 +240,20 @@
   .fgroup__clear{font-size:11.5px; color:var(--accent); background:none; border:none; padding:0; opacity:0; pointer-events:none; transition:opacity .15s}
   .fgroup.has-sel .fgroup__clear{opacity:1; pointer-events:auto}
 
+  /* タグのカテゴリは数が多いので折りたたむ。開きっぱなしだと左サイドバーが延々と続く（中途サイトと同じ） */
+  .fgroup--fold{padding:0}
+  .fgroup--fold>summary{list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:15px 2px}
+  .fgroup--fold>summary::-webkit-details-marker{display:none}
+  .fgroup--fold>summary:hover .fgroup__title{color:var(--ink-2)}
+  .fgroup--fold>summary:focus-visible{outline:2px solid var(--focus); outline-offset:2px; border-radius:6px}
+  .fgroup__sum-r{display:flex; align-items:center; gap:7px; flex:none}
+  .fgroup__n{font-family:var(--mono); font-size:11px; color:var(--ink-3)}
+  .fgroup__badge{font-family:var(--mono); font-size:11px; background:var(--accent); color:#fff; border-radius:999px; padding:1px 7px}
+  .fgroup__chev{color:var(--ink-3); transition:transform .18s}
+  .fgroup--fold[open]>summary .fgroup__chev{transform:rotate(180deg)}
+  .fgroup__fold-body{padding:0 2px 16px}
+  .fgroup--fold .facet-list{max-height:280px}
+
   .facet-search{width:100%; padding:7px 11px; font-size:13px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); margin-bottom:9px}
   .facet-search:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
   .facet-list{display:flex; flex-direction:column; gap:1px; max-height:236px; overflow-y:auto; margin:0 -4px; padding:0 4px}
@@ -389,6 +403,14 @@
   .tag{font-size:11.5px; padding:3px 9px; border-radius:6px; background:var(--surface-2); color:var(--ink-2); font-weight:600; max-width:100%; overflow-wrap:anywhere; line-height:1.5}
   .tag--cat{background:var(--accent-soft); color:var(--accent-ink)}
   .tag--remote{background:var(--good-soft); color:var(--good)}
+  /* 求人タグ。職種・雇用形態と見分けがつくよう、地ではなく枠線で出す */
+  .tag--jt{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); font-weight:500}
+  /* 求人詳細のタグ一覧。押すとその条件で一覧に戻る */
+  .pd-tagcat{margin-top:14px}
+  .pd-tagcat__h{font-size:11.5px; font-weight:800; letter-spacing:.08em; color:var(--ink-3); margin:0 0 7px}
+  .pd-tagcat__row{display:flex; flex-wrap:wrap; gap:7px}
+  a.tag--link{text-decoration:none; transition:border-color .15s, color .15s}
+  a.tag--link:hover{border-color:var(--accent); color:var(--accent)}
   .tag--kubun{background:var(--accent-soft); color:var(--accent-ink); font-weight:800}
 
   /* ---------- ボタン（応募・詳細） ---------- */
@@ -1256,6 +1278,9 @@
 
 <script>
 const JOBS = __JOBS_DATA__;
+/* タグの目録（name / slug / cat / desc）。data/tags.json ＝ node fetch-tags.js で取得（rebuild.js の attachTags が差し込む）。
+   求人1件ずつのタグは j.tags（タグ名の配列）。突き合わせは**タグ名の完全一致**。 */
+const TAGS = __TAGS_DATA__;
 /* 1day選考会は開催数が少ないので、専用ページをナビに置くのをやめ、
    検索結果の1位に固定のPR枠として出している（ページ1のときだけ）。
    開催がある回は日程を出し、無いときは案内を受け取る導線に切り替える。
@@ -1548,7 +1573,7 @@ JOBS.forEach(j=>{
     if(/第二新卒/.test(gtxt)) j.gradYears.push("既卒・第二新卒");
     if(!j.gradYears.length) j.gradYears=["記載なし"];
   }
-  j._hay = [j.company,j.position,j.title,j.jobCategory,(j.industry||[]).join(" "),j.location,j.jobContent,j.must,j.welcome,j.idealPerson,j.gradYears.join(" ")].filter(Boolean).join(" ").toLowerCase();
+  j._hay = [j.company,j.position,j.title,j.jobCategory,(j.industry||[]).join(" "),(j.tags||[]).join(" "),j.location,j.jobContent,j.must,j.welcome,j.idealPerson,j.gradYears.join(" ")].filter(Boolean).join(" ").toLowerCase();
   j._ts = j.createdAt ? (Date.parse(j.createdAt)||0) : 0;
   j._lead = plainLead(j.jobContent || j.must || j.companyInfo || "");
   j.empBand  = empBand(j.employeeCount);
@@ -1592,6 +1617,41 @@ function rich(src){
   flushList(); flushPara();
   return html;
 }
+
+/* ---------- タグ ----------
+   求人1件に平均29タグ付く（146種類）。1つの箱に並べると探せないので、タグマスタの「タグカテゴリ」ごとに
+   絞り込みの箱を1つずつ作る（＝facet が増える）。中途サイト（jobsite）と同じ作り。
+   ⚠ 中途サイトとの違い: **掲載中の求人に1件も付いていないタグは出さない**（TAG_SHOWN）。
+      求人40件のサイトで280タグの箱を18個出すと、0件のタグだらけになるため。カテゴリごと0件なら箱も出さない。 */
+/* 箱ごと出さないカテゴリ。業界は下の industry ツリー（大分類→中分類）に一本化した。 */
+const TAG_CAT_SKIP=new Set(["業界（中分類）","業界（大分類）"]);
+/* 個別に出さないタグ。**左に同じ条件が2か所あると件数が食い違って見える**ので、専用の絞り込みがあるほうに寄せる。
+   ⚠ 「出さない」のは左の一覧だけ。求人詳細のタグリンク（?tag=…）からは今までどおり絞り込める（scan は全タグを見る）。
+   ⚠ 「新卒・インターン向け」は全件に付く（このサイトの前提そのもの）ので出さない。 */
+const TAG_SKIP=new Set([
+  "首都圏勤務","東京23区勤務","地方勤務","関西勤務","東海勤務",              /* → 勤務地 */
+  "年収600万円以上","年収800万円以上","年収1000万円以上","年収1500万円以上", /* → 年収 */
+  "従業員1000名以上","従業員100名以下",                                    /* → 企業規模 */
+  "上場企業","非上場・オーナー企業",                                        /* → 上場区分 */
+  "リモート・在宅勤務可",                                                  /* → リモート可 */
+  "新卒・インターン向け"                                                   /* → 全件に付く */
+]);
+/* 6割以上の求人に付くタグは、押しても求人がほとんど絞れない。消しはしないが箱の末尾に回す */
+const TAG_BROAD_RATIO=0.6;
+
+const TAG_CAT=Object.fromEntries(TAGS.map(t=>[t.name,t.cat||""]));
+const TAG_BY_SLUG=Object.fromEntries(TAGS.map(t=>[t.slug,t.name]));
+const TAG_SLUG=Object.fromEntries(TAGS.map(t=>[t.name,t.slug]));
+const TAG_DESC=Object.fromEntries(TAGS.map(t=>[t.name,t.desc||""]));
+/* 求人に付いているタグのうち、目録に無いものは出さない（Airtableで消したタグの残骸） */
+function jobTags(j){ return (j.tags||[]).filter(t=>TAG_CAT[t]!==undefined); }
+/* 掲載中の求人に付いているタグだけ（このサイト固有。上の説明を参照） */
+const TAG_SHOWN=new Set();
+JOBS.forEach(j=>jobTags(j).forEach(t=>TAG_SHOWN.add(t)));
+/* カテゴリの並びはタグマスタの表示順のまま（＝求職者に見せたい順） */
+const TAG_CATS_ALL=[...new Set(TAGS.map(t=>t.cat).filter(Boolean))];   /* 求人詳細のタグ一覧はこちら（全部出す） */
+const TAG_CATS=TAG_CATS_ALL.filter(c=>!TAG_CAT_SKIP.has(c) && TAGS.some(t=>t.cat===c && TAG_SHOWN.has(t.name) && !TAG_SKIP.has(t.name)));
+const tagFacetKey=c=>"tag:"+c;
 
 /* ---------- facets config ---------- */
 /* ---------- 雇用形態 ---------- */
@@ -1667,6 +1727,17 @@ const facetDefs=[
   {key:"listed", title:"上場区分", type:"chip", order:["上場","非上場"], get:j=>j.listedStatus?[j.listedStatus]:[]}
 ];
 
+/* タグのカテゴリを facet として足す。既定は閉じておく（開きっぱなしだと左が長くなりすぎる）。
+   optionList は「掲載中の求人に付いていて、左に出す」タグだけ（TAG_SHOWN ∧ ¬TAG_SKIP）。 */
+TAG_CATS.forEach(cat=>{
+  const names=TAGS.filter(t=>t.cat===cat).map(t=>t.name);
+  facetDefs.push({
+    key:tagFacetKey(cat), title:cat, type:"check", searchable:true,
+    collapsible:true, isTag:true, optionList:names.filter(n=>!TAG_SKIP.has(n) && TAG_SHOWN.has(n)),
+    get:j=>jobTags(j).filter(t=>TAG_CAT[t]===cat)
+  });
+});
+
 const state={ q:"", sort:"reco", salaryMin:0, salaryMax:0, sel:{} };
 facetDefs.forEach(f=>state.sel[f.key]=new Set());
 
@@ -1732,6 +1803,10 @@ facetDefs.forEach(f=>{
   if(f.type==="tree"){
     /* 1段で出すツリー。親は並べず、子だけを件数の多い順に並べる（親は絞り込みの値としては生きている） */
     list=facetTree[f.key].reduce((a,x)=>a.concat(x[1]),[]).sort((a,b)=>(g.get(b)||0)-(g.get(a)||0));
+  }else if(f.optionList){
+    /* タグは目録の順に出す。ただし6割以上に付くタグは押しても絞れないので末尾に回す */
+    const broad=v=>((g.get(v)||0) > JOBS.length*TAG_BROAD_RATIO)?1:0;
+    list=f.optionList.slice().sort((a,b)=>broad(a)-broad(b) || (g.get(b)||0)-(g.get(a)||0));
   }else if(f.order){
     list=[...g.keys()].sort((a,b)=>{ const i=f.order.indexOf(a), k=f.order.indexOf(b);
       return (i<0?999:i)-(k<0?999:k) || (g.get(b)||0)-(g.get(a)||0); });
@@ -1740,6 +1815,36 @@ facetDefs.forEach(f=>{
   }
   facetOptions[f.key]=list;
 });
+const TAG_FACET_KEYS=facetDefs.filter(f=>f.isTag).map(f=>f.key);
+/* タグ名 → その条件を持っている facet のキー。?tag=… から絞り込むのに使う。
+   業界のタグ（大分類・中分類）は箱を出していないが、industry ツリーに同じ名前の値があるのでそこへ回す。 */
+function tagFacetOf(name){
+  const c=TAG_CAT[name];
+  if(c==="業界（中分類）"||c==="業界（大分類）") return "industry";
+  const k=tagFacetKey(c);
+  return state.sel[k]?k:null;
+}
+
+/* 掲載中の求人での、タグごとの件数。カードに出すタグを選ぶのに使う */
+const TAG_COUNT={};
+JOBS.forEach(j=>jobTags(j).forEach(t=>{ TAG_COUNT[t]=(TAG_COUNT[t]||0)+1; }));
+/* カードに出すタグの上限。1件あたり平均29タグ付くので、全部出すとカードがタグで埋まる。
+   ⚠ 詳細ページには全部出る（renderDetail の tagSec）。ここで絞るのは一覧の見やすさのため。 */
+const CARD_TAG_MAX=5;
+/* 枠が5つしかないので順番を決める。①カテゴリの優先順（下の並び） ②同じカテゴリの中では件数の少ない順（珍しいタグほど先）。
+   ⚠ 業界（大分類・中分類）と勤務地はカードの別の場所にすでに出ているので、ここでは出さない。中途サイトと同じ。 */
+const CARD_TAG_ORDER=["働き方・勤務時間","休日・休暇","残業・働きやすさ","応募資格・経験",
+  "給与・報酬","年齢・ライフステージ","企業属性","組織・カルチャー","キャリア・成長",
+  "選考・入社","事業フェーズ・仕事の性質","福利厚生・手当","プロダクト・事業モデル",
+  "注目領域","支援している業界","システム・技術領域"];
+const CARD_TAG_SKIP=new Set(["業界（大分類）","業界（中分類）","勤務地・通勤"]);
+const cardTagRank=t=>{ const i=CARD_TAG_ORDER.indexOf(TAG_CAT[t]); return i<0?99:i; };
+function cardTags(j){
+  return jobTags(j)
+    .filter(t=>!CARD_TAG_SKIP.has(TAG_CAT[t]) && !TAG_SKIP.has(t))
+    .sort((a,b)=>cardTagRank(a)-cardTagRank(b) || (TAG_COUNT[a]||0)-(TAG_COUNT[b]||0))
+    .slice(0,CARD_TAG_MAX);
+}
 const remoteCount=GLOBAL_CNT.remote.get("リモート可")||0;
 /* ---------- 年収の絞り込み ----------
    実データは上限4,000万円まであるが、2,000万円超は5件ほどの外れ値で、そこまで目盛りを伸ばすと
@@ -1827,8 +1932,8 @@ function regCnt(key,val,row,cntEl,input,node){
 }
 const CHEV=`<svg class="fgroup__chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
 const BOX=`<span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M5 12l5 5L20 6"/></svg></span>`;
-function optHtml(key,val,label,cls){
-  return `<label class="opt${cls?" "+cls:""}" data-opt="${esc(label)}">`
+function optHtml(key,val,label,cls,title){
+  return `<label class="opt${cls?" "+cls:""}" data-opt="${esc(label)}"${title?` title="${esc(title)}"`:""}>`
     +`<input type="checkbox" data-facet="${esc(key)}" data-val="${esc(val)}">${BOX}`
     +`<span class="lbl">${esc(label)}</span><span class="cnt">0</span></label>`;
 }
@@ -1859,31 +1964,48 @@ function buildFilters(){
     const tree=(f.type==="tree" && !FACET_FLAT[f.key]) ? facetTree[f.key] : null;
     const optCount=tree ? tree.reduce((s,g)=>s+1+g[1].length,0) : (facetOptions[f.key]||[]).length;
     if(!optCount) return;
-    h+=`<div class="fgroup" data-key="${esc(f.key)}">
-        <div class="fgroup__head">
-          <span class="fgroup__title">${esc(f.title)}</span>
-          <button class="fgroup__clear" data-clear="${esc(f.key)}">クリア</button>
-        </div>`;
-    if(f.searchable && optCount>7) h+=`<input class="facet-search" data-fsearch="${esc(f.key)}" placeholder="${esc(f.title)}を検索" aria-label="${esc(f.title)}を絞り込み">`;
-    if(tree){
-      /* 親（大分類）はそれ自体が絞り込みの値。右のボタンで子（中分類）を開く */
-      h+=`<div class="facet-list scroll ftree">`+tree.map(([p,kids])=>`
-        <div class="tnode">
-          <div class="trow">
-            ${optHtml(f.key,p,p,"opt--p")}
-            <button class="tkid" type="button" aria-expanded="false" aria-label="${esc(p)}の内訳を開く">${CHEV}</button>
+    const body=()=>{
+      let b="";
+      if(f.searchable && optCount>7) b+=`<input class="facet-search" data-fsearch="${esc(f.key)}" placeholder="${esc(f.title)}を検索" aria-label="${esc(f.title)}を絞り込み">`;
+      if(tree){
+        /* 親（大分類）はそれ自体が絞り込みの値。右のボタンで子（中分類）を開く */
+        b+=`<div class="facet-list scroll ftree">`+tree.map(([p,kids])=>`
+          <div class="tnode">
+            <div class="trow">
+              ${optHtml(f.key,p,p,"opt--p")}
+              <button class="tkid" type="button" aria-expanded="false" aria-label="${esc(p)}の内訳を開く">${CHEV}</button>
+            </div>
+            <div class="tkids" hidden>${kids.map(v=>optHtml(f.key,v,(f.labelOf?f.labelOf(v):v),"opt--c")).join("")}</div>
+          </div>`).join("")+`</div>`;
+      }else if(f.type==="chip"){
+        b+=`<div class="chip-row">`+facetOptions[f.key].map(v=>
+          `<button class="fchip" role="button" aria-pressed="false" data-facet="${esc(f.key)}" data-val="${esc(v)}">${esc(v)} <span class="cnt mono">0</span></button>`).join("")+`</div>`;
+      }else{
+        const scroll=optCount>8?"scroll":"";
+        b+=`<div class="facet-list ${scroll}">`+facetOptions[f.key].map(v=>
+          optHtml(f.key,v,(f.labelOf?f.labelOf(v):v),"",f.isTag?TAG_DESC[v]:"")).join("")+`</div>`;
+      }
+      return b;
+    };
+    if(f.collapsible){
+      /* 折りたたみ。開閉は <details> に任せる（JSを足さない）。中途サイトと同じ */
+      h+=`<details class="fgroup fgroup--fold" data-key="${esc(f.key)}">
+          <summary class="fgroup__sum">
+            <span class="fgroup__title">${esc(f.title)}</span>
+            <span class="fgroup__sum-r"><span class="fgroup__badge" hidden></span><span class="fgroup__n">${optCount}</span>${CHEV}</span>
+          </summary>
+          <div class="fgroup__fold-body">
+            <div class="fgroup__head"><span class="fgroup__title" style="letter-spacing:.04em;text-transform:none;font-size:12px">タグで絞り込む</span><button class="fgroup__clear" data-clear="${esc(f.key)}">クリア</button></div>
+            ${body()}
           </div>
-          <div class="tkids" hidden>${kids.map(v=>optHtml(f.key,v,(f.labelOf?f.labelOf(v):v),"opt--c")).join("")}</div>
-        </div>`).join("")+`</div>`;
-    }else if(f.type==="chip"){
-      h+=`<div class="chip-row">`+facetOptions[f.key].map(v=>
-        `<button class="fchip" role="button" aria-pressed="false" data-facet="${esc(f.key)}" data-val="${esc(v)}">${esc(v)} <span class="cnt mono">0</span></button>`).join("")+`</div>`;
+        </details>`;
     }else{
-      const scroll=optCount>8?"scroll":"";
-      h+=`<div class="facet-list ${scroll}">`+facetOptions[f.key].map(v=>
-        optHtml(f.key,v,(f.labelOf?f.labelOf(v):v))).join("")+`</div>`;
+      h+=`<div class="fgroup" data-key="${esc(f.key)}">
+          <div class="fgroup__head">
+            <span class="fgroup__title">${esc(f.title)}</span>
+            <button class="fgroup__clear" data-clear="${esc(f.key)}">クリア</button>
+          </div>${body()}</div>`;
     }
-    h+=`</div>`;
   });
   wrap.innerHTML=h;
 
@@ -1971,8 +2093,13 @@ function paintCounts(counts){
   }
 }
 function syncGroupState(k){
+  /* キーに「tag:カテゴリ名」が来るが、引用符の中なので : も日本語もそのままでよい */
   const grp=$(`.fgroup[data-key="${k}"]`); if(!grp) return;
-  grp.classList.toggle("has-sel", state.sel[k].size>0);
+  const n=state.sel[k].size;
+  grp.classList.toggle("has-sel", n>0);
+  /* 折りたたみは閉じていても選択数が見えるようにする。選ぶと勝手に開く（閉じたまま条件が効くと迷子になる） */
+  const b=grp.querySelector(".fgroup__badge");
+  if(b){ b.textContent=n; b.hidden=n===0; grp.querySelector(".fgroup__n").hidden=n>0; if(n>0) grp.open=true; }
 }
 function clearFacet(k){
   state.sel[k].clear();
@@ -2117,6 +2244,7 @@ function rowHtml(j){
   empList(j).forEach(t=>tags.push(`<span class="tag">${esc(t)}</span>`));
   if(j.jobCategory) tags.push(`<span class="tag tag--cat">${esc(j.jobCategory)}</span>`);
   if(j.remote) tags.push(`<span class="tag tag--remote">リモート可</span>`);
+  cardTags(j).forEach(t=>tags.push(`<span class="tag tag--jt">${esc(t)}</span>`));
   const ind=(j.industry&&j.industry[0])?`<span class="jrow__ind">${esc(j.industry[0])}</span>`:"";
   const isNew = j._ts && (Date.now()-j._ts) < NEW_DAYS*864e5;
   const name = j.position||j.jobCategory||j.title||"求人";
@@ -2306,6 +2434,28 @@ function openDetail(id){
   const cta = ctaHtml(j);
   const sec=(title,body,isRich)=> body?`<div class="pd-sec"><h3>${esc(title)}</h3>${isRich?`<div class="rich">${rich(body)}</div>`:body}</div>`:"";
 
+  /* この求人のタグ。カテゴリごとにまとめて全部出す（カードは5つに絞っているので、全部見えるのはここだけ）。
+     押すとそのタグで絞り込んだ一覧に戻る（?tag=スラッグ）。中途サイトと同じ。
+     ⚠ 使うのは TAG_CATS ではなく TAG_CATS_ALL。左の絞り込みに箱を出していないカテゴリも、ここでは見出し付きで出す。 */
+  const tagSec=(()=>{
+    const list=jobTags(j).filter(t=>TAG_CAT[t]!=="業界（中分類）" && t!=="新卒・インターン向け");
+    if(!list.length) return "";
+    const byCat=new Map();
+    TAG_CATS_ALL.forEach(c=>{ const v=list.filter(t=>TAG_CAT[t]===c); if(v.length) byCat.set(c,v); });
+    const rest=list.filter(t=>!TAG_CATS_ALL.includes(TAG_CAT[t]));
+    if(rest.length) byCat.set("その他",rest);
+    if(!byCat.size) return "";
+    let b="";
+    byCat.forEach((vals,c)=>{
+      b+=`<div class="pd-tagcat"><p class="pd-tagcat__h">${esc(c)}</p><div class="pd-tagcat__row">`
+        + vals.map(t=>TAG_SLUG[t]
+            ? `<a class="tag tag--jt tag--link" href="?tag=${encodeURIComponent(TAG_SLUG[t])}" data-tag="${esc(TAG_SLUG[t])}"${TAG_DESC[t]?` title="${esc(TAG_DESC[t])}"`:""}>${esc(t)}</a>`
+            : `<span class="tag tag--jt">${esc(t)}</span>`).join("")
+        + `</div></div>`;
+    });
+    return `<div class="pd-sec"><h3>この求人のタグ</h3>${b}</div>`;
+  })();
+
   const author = `<div class="pd-author">
       <p class="lbl">この求人を担当するエージェント</p>
       <p class="name"><a href="${esc(PROFILE_URL)}" target="_blank" rel="noopener">松岡 良次</a></p>
@@ -2343,6 +2493,7 @@ function openDetail(id){
       <div class="pd-tags">${tags.join("")}</div>
     </div>
     ${coSec}
+    ${tagSec}
     ${sec("仕事内容", j.jobContent, true)}
     ${sec("必須条件", j.must, true)}
     ${sec("歓迎条件", j.welcome, true)}
@@ -2380,14 +2531,55 @@ function showListView(){
   window.scrollTo(0, listScroll);
 }
 
-/* URL（?job=…）と画面を合わせる。popstate＝戻る/進むからも呼ばれる */
+/* ---------- タグでの絞り込み（?tag=スラッグ） ----------
+   タグは絞り込みの中では数が多く、外から名指しで来ることがある（メール・SNS・社内共有）。
+   そのためタグだけURLに乗せられるようにしてある。カンマ区切りで複数指定できる。中途サイトと同じ。
+   ⚠ 入口専用。ここでURLに書き戻すことはしない。 */
+function selectTags(names){
+  if(!names.length) return false;
+  TAG_FACET_KEYS.concat("industry").forEach(k=>clearFacetSilent(k));
+  let n=0;
+  names.forEach(name=>{
+    const k=tagFacetOf(name);
+    if(!k) return;                       // 目録から消えたタグ
+    state.sel[k].add(name); n++;
+    const el=document.querySelector(`[data-facet="${k}"][data-val="${CSS.escape(name)}"]`);
+    if(el) el.checked=true;
+    syncGroupState(k);
+  });
+  if(!n) return false;
+  apply();
+  return true;
+}
+function applyTagParam(v){
+  if(!v) return false;
+  const names=v.split(",").map(s=>TAG_BY_SLUG[s.trim()]).filter(Boolean);
+  const ok=selectTags(names);
+  if(ok) track("filter_use",{filter:"tag_url", value:names.join(" / ")});
+  return ok;
+}
+/* 求人詳細のタグから一覧へ。戻るで詳細に帰れるよう pushState で積む */
+function goTag(slug){
+  const name=TAG_BY_SLUG[slug];
+  if(!name){ goList(); return; }
+  if(history.pushState) history.pushState({},"","?tag="+encodeURIComponent(slug));
+  selectTags([name]);
+  showListView();
+  scrollToResults();
+  track("filter_use",{filter:"tag_click", value:name});
+}
+
+/* URL（?job=… / ?tag=…）と画面を合わせる。popstate＝戻る/進むからも呼ばれる */
 function route(){
-  const id=new URLSearchParams(location.search).get("job");
+  const p=new URLSearchParams(location.search);
+  const id=p.get("job");
   if(id){
     if(openDetail(id)) return;
     /* 掲載が終わっている求人。URLだけ消して一覧を見せる */
     if(history.replaceState) history.replaceState({},"",location.pathname);
   }
+  /* ⚠ tag が無いときは何もしない（クリアしない）。求人詳細から戻ったときに絞り込みが消えるのを避けるため */
+  applyTagParam(p.get("tag"));
   showListView();
 }
 function goDetail(id){
@@ -2408,7 +2600,10 @@ document.addEventListener("click",e=>{
   const back=e.target.closest("a[data-golist]");
   if(back){ e.preventDefault(); goList(); return; }
   const a=e.target.closest("a[data-job]");
-  if(a){ e.preventDefault(); goDetail(a.dataset.job); }
+  if(a){ e.preventDefault(); goDetail(a.dataset.job); return; }
+  /* 求人詳細のタグを押したら、そのタグで絞った一覧に戻る */
+  const tg=e.target.closest("a[data-tag]");
+  if(tg){ e.preventDefault(); goTag(tg.dataset.tag); }
 });
 /* 「応募する」は本当のページ遷移（apply.html）なので、遷移前に記録だけ取る */
 document.addEventListener("click",e=>{

@@ -1,5 +1,5 @@
 // 使い方: このフォルダで  node rebuild.js  を実行すると、
-//   data/jobs.json（＋ data/logos.json） → template.html        → index.html
+//   data/jobs.json（＋ data/logos.json ＋ data/tags.json） → template.html        → index.html
 //   data/jobs.json  → apply-template.html  → apply.html   （求人の見出しだけを差し込む）
 //   data/1day.json  → 1day-template.html   → 1day.html
 // を再生成します。data/1day.json は  node fetch-1day.js  で Airtable から取得します。
@@ -162,6 +162,33 @@ if(jobs){
   const detail = Object.entries(by).map(([k,v]) => `${k} ${v}件`).join(' / ');
   console.log('index.html を再生成しました:', jobs.length, `件（${detail}）`);
 }
+
+/* タグの目録（data/tags.json ＝ node fetch-tags.js で取得）。中途サイト（jobsite）と同じ仕組み（2026-09-22・backlog #21）。
+   絞り込みをカテゴリごとの箱に分けるための「名前・スラッグ・カテゴリ」だけを持つ。
+   ⚠ 件数はここに入れない。新卒・インターンだけに絞ったあとの件数はブラウザ側で数える。
+   ⚠ 求人1件ずつのタグは data/jobs.json の tags（タグ名の配列）側にある。突き合わせは**タグ名の完全一致**。
+     Airtableでタグ名を変えたら、求人側のタグも付け直す（node fetch-jobs.js からやり直す）。
+   ⚠ 中途サイトと違い、このサイトは求人が40件ほどなので**掲載中の求人に1件も付いていないタグは箱に出さない**
+     （template.html 側の判定）。280タグの箱を18個出すと0件だらけになるため。 */
+function attachTags(){
+  const indexPath = path.join(dir, 'index.html');
+  if(!fs.existsSync(indexPath)) return;
+  const tagPath = path.join(dir, 'data', 'tags.json');
+  let tags = [];
+  if(fs.existsSync(tagPath)) tags = JSON.parse(fs.readFileSync(tagPath, 'utf8'));
+  else console.log('data/tags.json が無いので、タグの絞り込みは出しません（node fetch-tags.js）。');
+  const html = fs.readFileSync(indexPath, 'utf8').replace('__TAGS_DATA__', () => embed(tags));
+  fs.writeFileSync(indexPath, html, 'utf8');
+  if(!tags.length || !jobs) return;
+  const used = new Set();
+  jobs.forEach(j => (j.tags || []).forEach(n => used.add(n)));
+  const inList = tags.filter(t => used.has(t.name));
+  const cats = new Set(inList.map(t => t.cat).filter(Boolean));
+  console.log(`タグ: 目録 ${tags.length}件のうち、掲載中の求人に付いている ${inList.length}件 / ${cats.size}カテゴリを絞り込みに出します`);
+  const noTag = jobs.filter(j => !j.tags || !j.tags.length).length;
+  if(noTag) console.log(`  ⚠ タグが1つも付いていない求人が ${noTag}件あります（Airtable の 03_apply-tags.js を回してください）`);
+}
+attachTags();
 
 /* 申し込みフォームは「どの求人から来たか」を見出しに出すだけなので、
    求人データ全部ではなく ID・企業名・職種名・年収だけを持たせる。 */
