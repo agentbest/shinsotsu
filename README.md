@@ -1,4 +1,4 @@
-# 新卒・インターン求人検索（shinsotsu.agent-best.net）
+# エージェントベストジョブ学生（shinsotsu.agent-best.net）
 
 株式会社エージェントベストが運営する、**新卒・インターン向けの求人検索サイト**です。
 中途（転職）は [jobs.agent-best.net](https://jobs.agent-best.net/) が担当しています。
