@@ -29,7 +29,7 @@ template.html / apply-template.html / data/jobs.json を編集
 ## データ元と「新卒だけにする仕組み」
 
 Airtable base「人材紹介事業」`appYkc36EvioYoL1A` / table「求人DB（求人票）」`tblyPZZasXTM2tcrV`。
-**`data/jobs.json` は、jobsite の `data/jobs.json`（Airtable全件・56MB・jobsite側では .gitignore）から新卒・インターンだけを抜いた41件（2026-09-06）。** jobsite の全件ファイルをそのまま置くと重すぎるので、こちらは区分≠中途のサブセットを置く。取り直しは jobsite で `node fetch-jobs.js` → 区分で抜いてここへコピー → `node rebuild.js`。
+**`data/jobs.json` は、毎朝 06:10 JST に GitHub Actions（`.github/workflows/update-jobs.yml`）が `node fetch-jobs.js` で取り直す（2026-10-15〜。それまでは手動で、9/11 から止まっていた）。** `fetch-jobs.js` は jobsite の写しで、Airtable 全件から**区分＝新卒・インターンだけ**を書き出す（全件56MBをPublicリポジトリに入れないため）。続けて fetch-tags → fetch-employees → fetch-1day → rebuild → push。掲載件数が20%以上減ったら push しない。Secret は AIRTABLE_TOKEN。⚠ fetch-jobs.js の列を足すときは jobsite 側と両方直す。
 
 `rebuild.js` の **`newGradOnly()`** が `kubun` が「新卒」「インターン」**以外**を落としてから埋め込む。
 2026-08-28時点の内訳は **新卒29件・インターン5件（9社）**。
@@ -227,7 +227,7 @@ jobsite と同じ構成（左サイドバーの絞り込み＋1件1行の横長�
   **jobsite との違いは1つだけ**: 掲載中の求人に1件も付いていないタグは箱に出さない（`TAG_SHOWN`）。求人40件で280タグを出すと
   0件だらけになるため。カテゴリごと0件なら箱も出ない（19カテゴリ中17が出る）。`TAG_SKIP` には「新卒・インターン向け」（全件に付く）を足してある。
   ⚠ タグの箱を触るときは jobsite 側と見比べること（`TAGS` / `TAG_*` / `cardTags` / `tagSec` / `selectTags` は同じコード）。
-  ⚠ `fetch-tags.js` は Actions で回していない（このサイトの更新は手動）。タグマスタを変えたら手元で `node fetch-tags.js` → `node rebuild.js`。
+  `fetch-tags.js` も毎朝 Actions で回る（2026-10-15〜）。急ぐときは手元で `node fetch-tags.js` → `node rebuild.js`。
 - `対象卒業年`（`gradYears`）と `区分`（`kubun`）のチップがこのサイト固有。並びは `order` で
   26卒→27卒→28卒…の順（件数順にすると年がばらばらに並ぶ）
 - **上場区分を追加した**（`listedStatus`。上場10 / 非上場30）。jobsite と同じ

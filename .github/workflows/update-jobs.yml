@@ -1,0 +1,84 @@
+# 新卒・インターンの求人を毎日 Airtable から取り直して、サイトを再生成して push する（2026-10-15〜）。
+#
+#   毎日 06:10 JST（cron は UTC）＋ Actions タブの「Run workflow」で手動実行もできる
+#   fetch-jobs（新卒・インターンだけ書き出す）→ fetch-tags → fetch-employees → fetch-1day → rebuild → 変更があれば commit & push
+#   jobsite（中途）の update-jobs.yml と同じ形。push されると GitHub Pages が数十秒で反映する。
+#
+# 必要な設定（1回だけ）: Settings → Secrets and variables → Actions に AIRTABLE_TOKEN
+#   ⚠ Public リポジトリでも Secrets は公開されない。トークンをファイルに書かないこと。
+#
+# ⚠ fetch-logos.js はここで回さない（jobsite と同じ。手でトリミングしたロゴが原本で上書きされるため）。
+# ⚠ 掲載件数が前回より 20% 以上減ったら push しない（Airtable 側の事故・API の一時的な失敗対策）。
+#    本当に減らしたとき（PAST_GRADS に卒業年を足した等）は手元で rebuild して push する。
+name: 求人データを毎日更新
+
+on:
+  schedule:
+    - cron: '10 21 * * *'   # 21:10 UTC = 06:10 JST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-jobs
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 更新前の掲載件数を控える
+        run: echo "BEFORE=$(node -p "require('./data/jobs.json').length")" >> "$GITHUB_ENV"
+
+      - name: Airtable から取得
+        env:
+          AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+        run: |
+          if [ -z "$AIRTABLE_TOKEN" ]; then
+            echo "::error::Secret AIRTABLE_TOKEN が設定されていません（Settings → Secrets and variables → Actions）"
+            exit 1
+          fi
+          node fetch-jobs.js
+          node fetch-tags.js
+          node fetch-employees.js
+          # 1day選考会は開催が無い期間が長く、テーブルが無い／権限が無いことがある。失敗しても求人の更新は止めない
+          node fetch-1day.js || echo "::warning::1day選考会の取得に失敗しました（求人の更新は続けます）"
+
+      - name: 再生成
+        run: node rebuild.js
+
+      - name: 件数の急減を検知（20% 以上減っていたら push しない）
+        run: |
+          AFTER=$(node -p "require('./data/jobs.json').length")
+          echo "更新前 $BEFORE 件 → 更新後 $AFTER 件"
+          if [ "$AFTER" -lt $(( BEFORE * 8 / 10 )) ]; then
+            echo "::error::掲載件数が 20% 以上減りました（$BEFORE → $AFTER）。Airtable を確認してください。push しません。"
+            exit 1
+          fi
+
+      - name: トークン混入の確認
+        run: |
+          if [ -e airtable.local.json ] || grep -rIl --exclude-dir=node_modules --exclude-dir=.git -E 'pat[A-Za-z0-9]{14}\.[0-9a-f]{64}' . ; then
+            echo "::error::Airtable のトークンらしき文字列が含まれています。push しません。"
+            exit 1
+          fi
+
+      - name: commit & push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "変更なし"
+            exit 0
+          fi
+          git commit -m "求人データを自動更新（$(TZ=Asia/Tokyo date +%Y-%m-%d)）"
+          git push
