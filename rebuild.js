@@ -1,8 +1,7 @@
 // 使い方: このフォルダで  node rebuild.js  を実行すると、
 //   data/jobs.json（＋ data/logos.json ＋ data/tags.json） → template.html        → index.html
 //   data/jobs.json  → apply-template.html  → apply.html   （求人の見出しだけを差し込む）
-//   data/1day.json  → 1day-template.html   → 1day.html
-// を再生成します。data/1day.json は  node fetch-1day.js  で Airtable から取得します。
+// を再生成します。
 const fs = require('fs'), path = require('path');
 const dir = __dirname;
 
@@ -216,48 +215,3 @@ if(jobs){
   }
 }
 
-/* 1day選考会。Airtableの1テーブルを jobs（中途）と共有しているので、
-   このサイトは「区分＝新卒・インターン」の回だけを載せる。
-   ⚠ jobsite 側には鏡写しの midCareerEvents() がある。片方だけ直すと、
-      同じ回が両サイトに出る／どちらにも出ない状態になる。
-   ⚠ 求人と違い、区分が空の回はこのサイトには出さない（空欄＝中途扱いのため）。
-      新卒の回が出てこないときは、まず Airtable の「区分」を疑うこと。 */
-function newGradOnly1day(events){
-  const kept = events.filter(e => e.kubun === '新卒・インターン');
-  const noKubun = events.filter(e => !e.kubun);
-  if(noKubun.length){
-    console.log(`⚠ 区分が空の1day選考会が ${noKubun.length}件あります。中途扱いでこのサイトには出ません。Airtableで区分を入れてください:`);
-    noKubun.forEach(e => console.log(`   - ${e.date || '日付なし'} / ${e.title || e.id}`));
-  }
-  const dropped = events.length - kept.length;
-  if(dropped > 0) console.log(`新卒・インターン以外の1day選考会を除外しました: ${dropped}件`);
-  return kept;
-}
-
-const events = build('1day.json', '1day-template.html', '1day.html', '__EVENTS_DATA__', [], newGradOnly1day);
-if(events) console.log('1day.html を再生成しました:', events.length, '件（新卒・インターンのみ）');
-
-/* 1day選考会は専用ページをナビから外し、検索結果の1位のPR枠に一本化した。
-   index.html にはPR枠に出すぶん（直近3件の日程・タイトル・参加企業）だけを渡す。
-   ⚠ 1day.json を更新したら rebuild.js を回すこと。回さないと一覧のPR枠が古いままになる。 */
-function onedayMini(list){
-  const today = new Date().toISOString().slice(0, 10);
-  return (list || [])
-    .filter(e => e.status !== 'closed')
-    .filter(e => !e._iso || e._iso >= today)
-    .slice(0, 3)
-    .map(e => ({
-      date: e.date || '',
-      title: e.title || '1day選考会',
-      company: e.companyLabel || '',
-    }));
-}
-{
-  const indexPath = path.join(dir, 'index.html');
-  if(fs.existsSync(indexPath)){
-    const mini = onedayMini(events);
-    const html = fs.readFileSync(indexPath, 'utf8').replace('__ONEDAY_MINI__', () => embed(mini));
-    fs.writeFileSync(indexPath, html, 'utf8');
-    console.log('検索結果1位のPR枠:', mini.length ? `次回 ${mini[0].date}（掲載 ${mini.length}件）` : '開催なし（案内を受け取る導線を表示）');
-  }
-}

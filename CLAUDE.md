@@ -16,7 +16,7 @@ Airtableの求人から**新卒・インターンだけ**を検索できる静�
 
 ```
 template.html / apply-template.html / data/jobs.json を編集
-  → node rebuild.js      （index.html・apply.html・1day.html を再生成・件数を表示）
+  → node rebuild.js      （index.html・apply.html を再生成・件数を表示）
   → commit & push        （数十秒で反映）
 ```
 
@@ -24,12 +24,11 @@ template.html / apply-template.html / data/jobs.json を編集
 |---|---|---|
 | `index.html` | `template.html` | `__JOBS_DATA__` ＝ 新卒・インターン求人の全項目 |
 | `apply.html` | `apply-template.html` | `__JOBS_MINI__` ＝ ID・企業名・職種名・年収**だけ** |
-| `1day.html` | `1day-template.html` | `__EVENTS_DATA__` ＝ 1day選考会の開催回（`node fetch-1day.js` で取得） |
 
 ## データ元と「新卒だけにする仕組み」
 
 Airtable base「人材紹介事業」`appYkc36EvioYoL1A` / table「求人DB（求人票）」`tblyPZZasXTM2tcrV`。
-**`data/jobs.json` は、毎朝 06:10 JST に GitHub Actions（`.github/workflows/update-jobs.yml`）が `node fetch-jobs.js` で取り直す（2026-10-15〜。それまでは手動で、9/11 から止まっていた）。** `fetch-jobs.js` は jobsite の写しで、Airtable 全件から**区分＝新卒・インターンだけ**を書き出す（全件56MBをPublicリポジトリに入れないため）。続けて fetch-tags → fetch-employees → fetch-1day → rebuild → push。掲載件数が20%以上減ったら push しない。Secret は AIRTABLE_TOKEN。⚠ fetch-jobs.js の列を足すときは jobsite 側と両方直す。
+**`data/jobs.json` は、毎朝 06:10 JST に GitHub Actions（`.github/workflows/update-jobs.yml`）が `node fetch-jobs.js` で取り直す（2026-10-15〜。それまでは手動で、9/11 から止まっていた）。** `fetch-jobs.js` は jobsite の写しで、Airtable 全件から**区分＝新卒・インターンだけ**を書き出す（全件56MBをPublicリポジトリに入れないため）。続けて fetch-tags → fetch-employees → rebuild → push。掲載件数が20%以上減ったら push しない。Secret は AIRTABLE_TOKEN。⚠ fetch-jobs.js の列を足すときは jobsite 側と両方直す。
 
 `rebuild.js` の **`newGradOnly()`** が `kubun` が「新卒」「インターン」**以外**を落としてから埋め込む。
 2026-08-28時点の内訳は **新卒29件・インターン5件（9社）**。
@@ -141,41 +140,11 @@ alter table public.applications add column if not exists grad_year text;
   ⚠ **古い年を消さない**（既卒の方が選べなくなるため）。
 - ⚠ **面談方法は「オンライン」「電話」の2つだけ。対面は載せない**（実際に受けていないため。jobsite と同じ方針）。
 
-## 1day選考会（`1day.html` ＋ 検索結果1位のPR枠）— 2026-08-28 新設 / 2026-09-01 導線変更
+## 1day選考会 — 2026-10-16 に廃止（松岡さん指示）
 
-⚠ **2026-09-01に導線を作り替えた。** 開催数が少ないのにナビ・特集行・フッター・専用ページと4か所を
-占めていたため、**ナビ・一覧上部の特集行・フッターからは外し、検索結果の1位に固定で出るPR枠に一本化**した。
-専用ページ `1day.html` は残っていて、PR枠のリンク先になっている（ナビからは辿れない）。
-
-- PR枠は `template.html` の `prSlotHtml()`。**1ページ目のときだけ**先頭に差し込む。
-- 開催があるときは日程・参加企業を出して `1day.html` へ、無いときは「開催の案内を受け取る」で
-  `apply.html` へ送る（**常に表示する**）。
-- PR枠に出すデータは `rebuild.js` の `onedayMini()` が `__ONEDAY_MINI__` に差し込む（直近3件）。
-  **`data/1day.json` を更新したら `node rebuild.js` を回すこと。**
-
-
-新卒・インターン向けの1day選考会ページ。開催情報は Airtable「1day選考会」`tbl1J80CGqiOTvuf7`。
-`node fetch-1day.js` → `data/1day.json` → `node rebuild.js` → `1day.html` の順。
-**求人と違い、取得は毎回 Airtable から手で回す。**
-
-- 「公開ステータス」が**非公開・未設定**の回は `fetch-1day.js` の時点で落ちる（＝サイトに出ない）。
-- ⚠ **このテーブルは jobs.agent-best.net（中途）と共有している。**「区分」（2026-08-28追加・
-  `fldfhFRnZhuug3rl0`）で振り分ける。新卒・インターン＝このサイト、中途＝jobsite。
-  - `rebuild.js` の **`newGradOnly1day()`** が新卒・インターン以外を落とす。**jobsite 側には鏡写しの
-    `midCareerEvents()` がある。片方だけ直すと、同じ回が両サイトに出る／どちらにも出ない。**
-  - ⚠ **区分が空の回は中途扱いになり、このサイトには出ない**（求人の区分と同じ既定）。
-    新卒の回が出てこないときは、**まず Airtable の「区分」を疑う。いちばん気づきにくい事故。**
-    ビルド時に回名を挙げて警告が出る。
-  - 記入例の行（非公開）に運用メモを入れてある。**複製したら区分を必ず見直すこと。**
-- **申し込み先は自前の `apply.html`（就活サポート）。** jobsite は中途用の Airtable フォームに
-  送っているが、こちらは使わない。
-  - ⚠ **`apply.html?job=` に1day選考会のレコードIDを渡さないこと。** あの `job` は求人ID専用で、
-    渡すと申し込みデータの `job_id` に求人ではないIDが入る。だから1dayからは素の `apply.html` に送る。
-    **どの回に申し込んだかは、いまは事前面談で確認する運用。**
-    フォーム側に1day用の項目を足すなら、Supabase のテーブルごと直す話になるので事前に相談する。
-  - どの回のボタンから来たかは GA4 の `apply_click`（`data-evid`）で見る。
-- 掲載0件のときは「次回の開催を準備中です」の空状態が出る。**リンク切れにはならない。**
-- 導線はヘッダーのナビ／トップの「特集」帯／フッター／`apply.html` のナビとフッター。
+`1day.html`・`1day-template.html`・`fetch-1day.js`・`data/1day.json`・検索結果1位のPR枠（`prSlotHtml()` / `__ONEDAY_MINI__`）を
+jobs・skill・shinsotsu の3サイトから削除した。Airtable の「1day選考会」テーブル（tbl1J80CGqiOTvuf7）は 9/12 時点で既に無い。
+戻すときは 2026-10-15 以前のコミットから復元する。求人本文に「1Day選考会」と書かれている求人は求人データなので対象外。
 
 ## デザイン
 

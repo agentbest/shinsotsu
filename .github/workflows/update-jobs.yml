@@ -1,7 +1,7 @@
 # 新卒・インターンの求人を毎日 Airtable から取り直して、サイトを再生成して push する（2026-10-15〜）。
 #
 #   毎日 06:10 JST（cron は UTC）＋ Actions タブの「Run workflow」で手動実行もできる
-#   fetch-jobs（新卒・インターンだけ書き出す）→ fetch-tags → fetch-employees → fetch-1day → rebuild → 変更があれば commit & push
+#   fetch-jobs（新卒・インターンだけ書き出す）→ fetch-tags → fetch-employees → rebuild → 変更があれば commit & push
 #   jobsite（中途）の update-jobs.yml と同じ形。push されると GitHub Pages が数十秒で反映する。
 #
 # 必要な設定（1回だけ）: Settings → Secrets and variables → Actions に AIRTABLE_TOKEN
@@ -49,8 +49,6 @@ jobs:
           node fetch-jobs.js
           node fetch-tags.js
           node fetch-employees.js
-          # 1day選考会は開催が無い期間が長く、テーブルが無い／権限が無いことがある。失敗しても求人の更新は止めない
-          node fetch-1day.js || echo "::warning::1day選考会の取得に失敗しました（求人の更新は続けます）"
 
       - name: 再生成
         run: node rebuild.js
