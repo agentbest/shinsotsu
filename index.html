@@ -44,7 +44,7 @@
     --shadow-sm:0 1px 2px rgba(21,26,40,.05), 0 1px 3px rgba(21,26,40,.06);
     --shadow-md:0 4px 12px rgba(21,26,40,.08), 0 2px 4px rgba(21,26,40,.05);
     --shadow-lg:0 24px 60px rgba(16,20,34,.22);
-    --r-card:14px; --r-input:10px; --r-pill:999px;
+    --r-card:20px; --r-input:14px; --r-pill:999px;
     --sans:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","YuGothic","Noto Sans JP",Meiryo,system-ui,sans-serif;
     --mono:ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Consolas,monospace;
     --maxw:1300px;
@@ -83,6 +83,31 @@
     --cta:#D6392C; --cta-ink:#FFFFFF; --cta-hover:#E44D3D;
     --shadow-sm:0 1px 2px rgba(0,0,0,.3); --shadow-md:0 6px 18px rgba(0,0,0,.4);
     --shadow-lg:0 30px 70px rgba(0,0,0,.6);
+  }
+
+  /* ---------- やさしい配色（2026-10-17・はじめての就活生向け） ----------
+     淡い背景色4つ。図・ステップ・比較カードの面に使う。ブランドの青（--accent）と朱（--cta）はそのまま */
+  :root{
+    --paper:#F6F8FD;
+    --soft-sky:#E9F1FF; --soft-peach:#FFEFE8; --soft-mint:#E4F5EC; --soft-lemon:#FFF6DA;
+    --soft-sky-ink:#2F5BD3; --soft-peach-ink:#C2523B; --soft-mint-ink:#1D8259; --soft-lemon-ink:#9A6B0C;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F131A;
+      --soft-sky:#172338; --soft-peach:#2A1D1A; --soft-mint:#13251D; --soft-lemon:#272216;
+      --soft-sky-ink:#9DBBFF; --soft-peach-ink:#F2A58F; --soft-mint-ink:#7FD3AB; --soft-lemon-ink:#E8C26E;
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#F6F8FD;
+    --soft-sky:#E9F1FF; --soft-peach:#FFEFE8; --soft-mint:#E4F5EC; --soft-lemon:#FFF6DA;
+    --soft-sky-ink:#2F5BD3; --soft-peach-ink:#C2523B; --soft-mint-ink:#1D8259; --soft-lemon-ink:#9A6B0C;
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F131A;
+    --soft-sky:#172338; --soft-peach:#2A1D1A; --soft-mint:#13251D; --soft-lemon:#272216;
+    --soft-sky-ink:#9DBBFF; --soft-peach-ink:#F2A58F; --soft-mint-ink:#7FD3AB; --soft-lemon-ink:#E8C26E;
   }
 
   *{box-sizing:border-box}
@@ -140,76 +165,178 @@
   .wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px}
 
   /* ---------- ヒーロー（アイキャッチ） ----------
-     写真の上に藍のスクリムを重ねる。人物は右、コピーと検索は左。
-     ライト・ダークどちらでも同じ見え方になるよう、中は常に白文字で組む。 */
+     2026-10-17 に、写真＋藍のスクリムから「淡いグラデーション＋階段と旗の図」に変えた（はじめての就活生向けにやわらかく）。
+     文字はライト・ダークどちらもトークンの色。図は .art-* のクラスで色を当てる（SVG の fill に var() を直書きしない）。 */
   .hero{
-    position:relative; margin:18px 0 0; border-radius:18px; overflow:hidden;
-    background:#132752; box-shadow:var(--shadow-md); isolation:isolate;
-  }
-  .hero__bg{
-    position:absolute; inset:0; width:100%; height:100%;
-    object-fit:cover; object-position:50% 46%;
-  }
-  .hero__scrim{
-    position:absolute; inset:0;
+    position:relative; margin:18px 0 0; border-radius:28px; overflow:hidden;
     background:
-      linear-gradient(96deg, rgba(15,37,88,.94) 0%, rgba(15,37,88,.88) 32%, rgba(19,45,104,.60) 58%, rgba(24,54,122,.34) 100%),
-      linear-gradient(180deg, rgba(8,16,40,.32) 0%, rgba(8,16,40,0) 44%);
+      radial-gradient(120% 140% at 0% 0%, var(--soft-sky) 0%, transparent 60%),
+      radial-gradient(90% 120% at 100% 100%, var(--soft-peach) 0%, transparent 62%),
+      var(--surface);
+    border:1px solid var(--line-2); box-shadow:var(--shadow-sm); isolation:isolate;
+    display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,380px); align-items:center;
   }
-  .hero__inner{position:relative; padding:44px 44px 38px; max-width:660px; color:#fff}
+  .hero__inner{position:relative; padding:46px 16px 38px 46px; color:var(--ink); min-width:0}
   .hero__eyebrow{
-    display:inline-flex; align-items:center; gap:8px; margin:0 0 12px;
-    font-size:11.5px; font-weight:800; letter-spacing:.14em; color:rgba(255,255,255,.78);
+    display:inline-flex; align-items:center; gap:8px; margin:0 0 14px;
+    padding:5px 13px; border-radius:var(--r-pill); background:var(--surface); border:1px solid var(--line);
+    font-size:12.5px; font-weight:800; letter-spacing:.06em; color:var(--accent-ink);
   }
-  .hero__eyebrow::before{content:""; width:22px; height:2px; background:#FF8A72; border-radius:2px}
+  .hero__eyebrow::before{content:""; width:8px; height:8px; background:var(--cta); border-radius:50%}
   .hero h1{
-    margin:0 0 12px; font-size:clamp(1.62rem,3.3vw,2.35rem); line-height:1.24;
-    letter-spacing:.01em; font-weight:800; text-wrap:balance; color:#fff;
-    text-shadow:0 2px 18px rgba(8,10,28,.45);
+    margin:0 0 12px; font-size:clamp(1.62rem,3.3vw,2.35rem); line-height:1.3;
+    letter-spacing:.01em; font-weight:800; text-wrap:balance; color:var(--ink);
   }
-  .hero h1 em{font-style:normal; color:#FF8A72}
-  .hero__sub{
-    margin:0 0 20px; font-size:15px; line-height:1.75; color:rgba(255,255,255,.90);
-    max-width:34em; text-shadow:0 1px 12px rgba(8,10,28,.4);
-  }
+  .hero h1 em{font-style:normal; color:var(--accent); background:linear-gradient(transparent 68%, var(--soft-lemon) 68%); padding:0 .08em}
+  .hero__sub{margin:0 0 22px; font-size:15px; line-height:1.85; color:var(--ink-2); max-width:34em}
   /* ヒーロー内の検索。押した内容はヘッダーの #q に流し込む */
   .hero__search{display:flex; gap:8px; margin:0 0 14px}
   .hero__search .field{position:relative; flex:1 1 auto; min-width:0}
   .hero__search .field svg{
-    position:absolute; left:14px; top:50%; transform:translateY(-50%);
+    position:absolute; left:16px; top:50%; transform:translateY(-50%);
     color:var(--ink-3); pointer-events:none;
   }
   .hero__search input{
-    width:100%; padding:13px 14px 13px 42px; font:inherit; font-size:15px;
-    border-radius:var(--r-input); border:1px solid transparent;
-    background:#fff; color:#161A26; box-shadow:0 6px 20px rgba(8,10,28,.22);
+    width:100%; padding:14px 16px 14px 44px; font:inherit; font-size:15px;
+    border-radius:var(--r-pill); border:1px solid var(--line);
+    background:var(--surface); color:var(--ink); box-shadow:var(--shadow-sm);
   }
-  .hero__search input::placeholder{color:#8A8E9E}
-  .hero__search input:focus{outline:none; box-shadow:0 0 0 4px rgba(214,54,42,.45), 0 6px 20px rgba(8,10,28,.22)}
+  .hero__search input::placeholder{color:var(--ink-3)}
+  .hero__search input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft)}
   .hero__search button{
-    flex:none; padding:13px 22px; border:none; border-radius:var(--r-input);
+    flex:none; padding:14px 24px; border:none; border-radius:var(--r-pill);
     background:var(--cta); color:var(--cta-ink); font-weight:800; font-size:15px;
-    box-shadow:0 6px 20px rgba(8,10,28,.22); transition:background .15s;
+    box-shadow:var(--shadow-sm); transition:background .15s;
   }
   .hero__search button:hover{background:var(--cta-hover)}
   .hero__quick{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 20px}
-  .hero__quick-lbl{font-size:12px; font-weight:700; color:rgba(255,255,255,.72); letter-spacing:.06em}
+  .hero__quick-lbl{font-size:12.5px; font-weight:700; color:var(--ink-3); letter-spacing:.04em}
   .hero__quick button{
-    padding:6px 14px; border-radius:var(--r-pill); font-size:13.5px; font-weight:700;
-    color:#fff; background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.34);
-    backdrop-filter:blur(4px); transition:background .15s, border-color .15s;
+    padding:7px 15px; border-radius:var(--r-pill); font-size:13.5px; font-weight:700;
+    color:var(--ink); background:var(--surface); border:1px solid var(--line);
+    transition:background .15s, border-color .15s, color .15s;
   }
-  .hero__quick button:hover{background:rgba(255,255,255,.24); border-color:rgba(255,255,255,.6)}
-  .hero__stats{
-    display:flex; flex-wrap:wrap; gap:10px 30px; padding-top:18px;
-    border-top:1px solid rgba(255,255,255,.22);
+  .hero__quick button:hover{border-color:var(--accent); color:var(--accent-ink); background:var(--accent-soft)}
+  .hero__stats{display:flex; flex-wrap:wrap; gap:10px; padding-top:4px}
+  .hero__stats div{
+    display:flex; align-items:baseline; gap:7px; padding:8px 14px;
+    background:var(--surface); border:1px solid var(--line-2); border-radius:16px;
   }
-  .hero__stats div{display:flex; align-items:baseline; gap:7px}
   .hero__stats b{
     font-family:var(--mono); font-variant-numeric:tabular-nums;
-    font-size:21px; font-weight:700; color:#FFFFFF; line-height:1.2;
+    font-size:20px; font-weight:700; color:var(--accent-ink); line-height:1.2;
   }
-  .hero__stats span{font-size:12.5px; color:rgba(255,255,255,.72)}
+  .hero__stats span{font-size:12.5px; color:var(--ink-3)}
+  .hero__art{padding:28px 34px 28px 0; align-self:stretch; display:flex; align-items:center}
+  .hero__art svg{width:100%; height:auto; display:block}
+  .art-blob{fill:var(--surface); opacity:.85}
+  .art-s1{fill:var(--soft-mint)} .art-s2{fill:var(--soft-lemon)} .art-s3{fill:var(--soft-peach)} .art-s4{fill:var(--soft-sky)}
+  .art-edge{fill:none; stroke:var(--line); stroke-width:1.5}
+  .art-num{font:800 18px var(--sans); fill:var(--ink-2)}
+  .art-path{fill:none; stroke:var(--accent); stroke-width:2.5; stroke-dasharray:2 9; stroke-linecap:round; opacity:.7}
+  .art-pole{stroke:var(--ink-2); stroke-width:3; stroke-linecap:round}
+  .art-flag{fill:var(--cta)}
+  .art-leaf{fill:var(--soft-mint-ink)}
+  .art-stem{stroke:var(--soft-mint-ink); stroke-width:3; stroke-linecap:round; fill:none}
+  .art-spark{fill:var(--soft-lemon-ink)}
+  .art-dot{fill:var(--accent); opacity:.35}
+
+  /* ---------- はじめての方へ（ステップ図・職種タイル・新卒とインターンの違い・FAQ） ---------- */
+  .guide{margin:26px 0 8px}
+  .guide__h{display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 14px; margin:0 0 14px}
+  .guide__h h2{margin:0; font-size:19px; font-weight:800; color:var(--ink)}
+  .guide__h p{margin:0; font-size:14px; color:var(--ink-3)}
+  .steps{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; counter-reset:step}
+  .step{
+    position:relative; padding:18px 18px 18px; border-radius:var(--r-card);
+    background:var(--surface); border:1px solid var(--line-2); box-shadow:var(--shadow-sm);
+  }
+  .step:not(:last-child)::after{
+    content:""; position:absolute; top:50%; right:-12px; width:10px; height:10px; transform:translateY(-50%) rotate(45deg);
+    border-top:2.5px solid var(--line); border-right:2.5px solid var(--line); z-index:1;
+  }
+  .step__icon{width:52px; height:52px; border-radius:18px; display:grid; place-items:center; margin:0 0 12px}
+  .step:nth-child(1) .step__icon{background:var(--soft-sky); color:var(--soft-sky-ink)}
+  .step:nth-child(2) .step__icon{background:var(--soft-mint); color:var(--soft-mint-ink)}
+  .step:nth-child(3) .step__icon{background:var(--soft-lemon); color:var(--soft-lemon-ink)}
+  .step:nth-child(4) .step__icon{background:var(--soft-peach); color:var(--soft-peach-ink)}
+  .step__no{font:800 11.5px var(--mono); letter-spacing:.08em; color:var(--ink-3); margin:0 0 3px}
+  .step h3{margin:0 0 6px; font-size:16px; font-weight:800; color:var(--ink)}
+  .step p{margin:0; font-size:13.5px; line-height:1.75; color:var(--ink-2)}
+  .guide__free{
+    display:flex; align-items:center; gap:8px; margin:14px 0 0; padding:10px 16px; border-radius:16px;
+    background:var(--soft-mint); color:var(--ink); font-size:14px; line-height:1.6;
+  }
+  .guide__free svg{flex:none; color:var(--soft-mint-ink)}
+
+  .cats{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px}
+  .cat{
+    display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 8px 14px;
+    border-radius:var(--r-card); background:var(--surface); border:1px solid var(--line-2);
+    color:var(--ink); font:inherit; font-size:13.5px; font-weight:700; cursor:pointer;
+    transition:border-color .15s, transform .15s, box-shadow .15s;
+  }
+  .cat:hover{border-color:var(--accent); box-shadow:var(--shadow-md); transform:translateY(-2px)}
+  .cat__ic{width:48px; height:48px; border-radius:16px; display:grid; place-items:center}
+  .cat:nth-child(6n+1) .cat__ic{background:var(--soft-sky); color:var(--soft-sky-ink)}
+  .cat:nth-child(6n+2) .cat__ic{background:var(--soft-peach); color:var(--soft-peach-ink)}
+  .cat:nth-child(6n+3) .cat__ic{background:var(--soft-mint); color:var(--soft-mint-ink)}
+  .cat:nth-child(6n+4) .cat__ic{background:var(--soft-lemon); color:var(--soft-lemon-ink)}
+  .cat:nth-child(6n+5) .cat__ic{background:var(--soft-sky); color:var(--soft-sky-ink)}
+  .cat:nth-child(6n+6) .cat__ic{background:var(--soft-peach); color:var(--soft-peach-ink)}
+  .cat small{font-size:11.5px; font-weight:600; color:var(--ink-3); font-family:var(--mono)}
+
+  .learn{padding:12px 0 70px}
+  .vs{display:grid; grid-template-columns:minmax(0,1fr) 56px minmax(0,1fr); gap:0; align-items:stretch}
+  .vs__card{padding:22px 22px 20px; border-radius:24px; border:1px solid var(--line-2)}
+  .vs__card--grad{background:var(--soft-sky)}
+  .vs__card--intern{background:var(--soft-peach)}
+  .vs__top{display:flex; align-items:center; gap:12px; margin:0 0 12px}
+  .vs__ic{width:50px; height:50px; border-radius:16px; display:grid; place-items:center; background:var(--surface)}
+  .vs__card--grad .vs__ic{color:var(--soft-sky-ink)}
+  .vs__card--intern .vs__ic{color:var(--soft-peach-ink)}
+  .vs__top h3{margin:0; font-size:17px; font-weight:800; color:var(--ink)}
+  .vs__top p{margin:2px 0 0; font-size:13px; color:var(--ink-2)}
+  .vs__list{list-style:none; margin:0; padding:0; display:grid; gap:8px}
+  .vs__list li{display:flex; gap:9px; font-size:14px; line-height:1.7; color:var(--ink)}
+  .vs__list li::before{content:""; flex:none; width:8px; height:8px; margin-top:.62em; border-radius:50%; background:currentColor; opacity:.35}
+  .vs__mid{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; color:var(--ink-3); font-size:11.5px; font-weight:700; text-align:center}
+  .vs__mid span{writing-mode:vertical-rl; letter-spacing:.12em}
+  .vs__note{margin:12px 0 0; font-size:13.5px; color:var(--ink-3)}
+  .faq{display:grid; gap:10px; margin-top:4px}
+  .faq details{border-radius:18px; background:var(--surface); border:1px solid var(--line-2); padding:0 18px}
+  .faq summary{
+    list-style:none; cursor:pointer; display:flex; align-items:center; gap:12px; padding:16px 0;
+    font-size:15px; font-weight:700; color:var(--ink);
+  }
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::before{
+    content:"Q"; flex:none; width:28px; height:28px; border-radius:50%; display:grid; place-items:center;
+    background:var(--accent-soft); color:var(--accent-ink); font:800 13px var(--mono);
+  }
+  .faq summary::after{content:"+"; margin-left:auto; font-size:20px; color:var(--ink-3); line-height:1}
+  .faq details[open] summary::after{content:"−"}
+  .faq details p{margin:0 0 16px 40px; font-size:14px; line-height:1.85; color:var(--ink-2)}
+  .learn .guide{margin-top:34px}
+  @media (max-width:1080px){ .cats{grid-template-columns:repeat(3,minmax(0,1fr))} }
+  @media (max-width:900px){
+    .steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .step:nth-child(2)::after{display:none}
+  }
+  @media (max-width:640px){
+    .steps{grid-template-columns:1fr; gap:12px}
+    .step{display:grid; grid-template-columns:52px 1fr; column-gap:14px; padding:16px}
+    .step__icon{grid-row:span 3; margin:0}
+    .step:not(:last-child)::after{display:block; top:auto; bottom:-11px; right:auto; left:40px; transform:rotate(135deg)}
+    .step:nth-child(2)::after{display:block}
+    .cats{grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px}
+    .cat{padding:14px 4px 12px; font-size:12.5px}
+    .vs{grid-template-columns:1fr; gap:0}
+    .vs__mid{flex-direction:row; padding:8px 0}
+    .vs__mid span{writing-mode:horizontal-tb; letter-spacing:.04em}
+    .vs__mid svg{transform:rotate(90deg)}
+    .faq details p{margin-left:0}
+  }
 
   .intro{padding:20px 0 22px}
   .intro p{margin:0; color:var(--ink-2); font-size:15px; max-width:60ch}
@@ -805,12 +932,10 @@
     .layout{grid-template-columns:1fr}
     .filter-toggle{display:inline-flex}
     .search{max-width:none}
-    /* 幅が狭くなるとコピーが写真の人物側まで伸びるので、スクリムを全面に切り替える */
-    .hero__scrim{
-      background:linear-gradient(180deg, rgba(15,37,88,.58) 0%, rgba(15,37,88,.86) 48%, rgba(15,37,88,.94) 100%);
-    }
-    .hero__inner{max-width:none; padding:34px 28px 30px}
-    .hero__bg{object-position:50% 44%}
+    /* 幅が狭いときは図を隠し、文字と検索を全幅に */
+    .hero{grid-template-columns:1fr}
+    .hero__art{display:none}
+    .hero__inner{padding:34px 28px 30px}
     .filters{
       position:fixed; top:0; left:0; bottom:0; z-index:65; width:min(340px,86%); max-height:none;
       background:var(--surface); border-right:1px solid var(--line); padding:18px 18px 40px; overflow-y:auto;
@@ -844,7 +969,7 @@
 
     .wrap{padding-left:16px; padding-right:16px}
 
-    .hero{margin-top:12px; border-radius:14px}
+    .hero{margin-top:12px; border-radius:22px}
     .hero__inner{padding:26px 18px 24px}
     .hero__sub{font-size:14.5px; margin-bottom:16px}
     .hero__search{flex-wrap:wrap}
@@ -1075,15 +1200,10 @@
   <div id="listView">
   <!-- ===== ヒーロー（アイキャッチ） ===== -->
   <section class="hero">
-    <picture>
-      <source type="image/webp" srcset="assets/hero.webp">
-      <img class="hero__bg" src="assets/hero.jpg" alt="" width="1600" height="650" fetchpriority="high" decoding="async">
-    </picture>
-    <div class="hero__scrim"></div>
     <div class="hero__inner">
       <p class="hero__eyebrow">27卒・28卒 ｜ 新卒・インターン</p>
       <h1>最初の一社を、<em>選び抜く</em>。</h1>
-      <p class="hero__sub">知名度ではなく、任される仕事と伸び方で選べるように。コンサル・M&amp;A・成長企業を中心に、新卒とインターンの求人を集めています。</p>
+      <p class="hero__sub">知名度だけでなく、任される仕事や成長のしかたで選べるように。コンサル・M&amp;A・成長企業を中心に、新卒とインターンの求人を集めています。はじめての就活でも、ひとつずつ一緒に進めましょう。</p>
       <form class="hero__search" id="heroSearch" role="search">
         <span class="field">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -1103,6 +1223,78 @@
         <div><b id="coCount">0</b><span>掲載企業</span></div>
         <div><b id="internCount">0</b><span>インターン</span></div>
       </div>
+    </div>
+    <div class="hero__art" aria-hidden="true">
+      <svg viewBox="0 0 360 300" role="presentation">
+        <circle class="art-blob" cx="190" cy="150" r="132"/>
+        <circle class="art-dot" cx="54" cy="70" r="6"/><circle class="art-dot" cx="320" cy="250" r="5"/><circle class="art-dot" cx="80" cy="250" r="4"/>
+        <path class="art-path" d="M70 196 C 110 150, 150 168, 170 130 S 240 88, 268 62"/>
+        <rect class="art-s1" x="40" y="214" width="66" height="56" rx="14"/><rect class="art-edge" x="40" y="214" width="66" height="56" rx="14"/>
+        <rect class="art-s2" x="112" y="180" width="66" height="90" rx="14"/><rect class="art-edge" x="112" y="180" width="66" height="90" rx="14"/>
+        <rect class="art-s3" x="184" y="146" width="66" height="124" rx="14"/><rect class="art-edge" x="184" y="146" width="66" height="124" rx="14"/>
+        <rect class="art-s4" x="256" y="112" width="66" height="158" rx="14"/><rect class="art-edge" x="256" y="112" width="66" height="158" rx="14"/>
+        <text class="art-num" x="73" y="249" text-anchor="middle">1</text>
+        <text class="art-num" x="145" y="232" text-anchor="middle">2</text>
+        <text class="art-num" x="217" y="215" text-anchor="middle">3</text>
+        <text class="art-num" x="289" y="198" text-anchor="middle">4</text>
+        <path class="art-stem" d="M73 214 V 192"/>
+        <path class="art-leaf" d="M73 198 C 60 196, 54 186, 56 176 C 67 178, 73 186, 73 198 Z"/>
+        <path class="art-leaf" d="M73 194 C 84 190, 92 182, 90 172 C 79 174, 73 182, 73 194 Z"/>
+        <line class="art-pole" x1="289" y1="112" x2="289" y2="44"/>
+        <path class="art-flag" d="M291 46 L 330 58 L 291 72 Z"/>
+        <path class="art-spark" d="M232 70 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 z"/>
+        <path class="art-spark" d="M120 108 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ===== はじめての方へ：就活の流れ（ステップ図）＋職種から探す ===== -->
+  <section class="guide" aria-labelledby="flowTitle">
+    <div class="guide__h">
+      <h2 id="flowTitle">エージェントベストでの就活の流れ</h2>
+      <p>志望が決まっていなくても大丈夫です。</p>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <div class="step__icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.2 7.6L3 21l1.9-5.7A8.4 8.4 0 1 1 21 11.5z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg></div>
+        <p class="step__no">STEP 1</p>
+        <h3>登録・相談</h3>
+        <p>LINEやマイページから、まずは気軽にご相談ください。興味のあることや不安なことを伺います。</p>
+      </li>
+      <li class="step">
+        <div class="step__icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></svg></div>
+        <p class="step__no">STEP 2</p>
+        <h3>求人の紹介</h3>
+        <p>希望や得意なことをもとに、合いそうな企業をご紹介します。サイトに載っていない募集もあります。</p>
+      </li>
+      <li class="step">
+        <div class="step__icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></div>
+        <p class="step__no">STEP 3</p>
+        <h3>ES・面接対策</h3>
+        <p>エントリーシートの見直しや面接の練習を、一緒に進めます。はじめての面接でも安心して臨めるように。</p>
+      </li>
+      <li class="step">
+        <div class="step__icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+        <p class="step__no">STEP 4</p>
+        <h3>内定</h3>
+        <p>内定のあとも、条件の確認や「どちらに決めるか」迷ったときの相談に乗ります。</p>
+      </li>
+    </ol>
+    <p class="guide__free"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.6 2.5L16 9.5"/></svg><span>ご利用は<b>無料</b>です（費用は採用する企業が負担しています）。</span></p>
+  </section>
+
+  <section class="guide" aria-labelledby="catTitle">
+    <div class="guide__h">
+      <h2 id="catTitle">職種から探す</h2>
+      <p>気になる仕事を押すと、その求人だけを表示します。</p>
+    </div>
+    <div class="cats" id="catTiles">
+      <button type="button" class="cat" data-kw="エンジニア"><span class="cat__ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><path d="M9 8l-2 2 2 2M15 8l2 2-2 2"/></svg></span>エンジニア<small></small></button>
+      <button type="button" class="cat" data-kw="営業"><span class="cat__ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12l4-4 4 3 3-3 7 6"/><path d="M7 8l-4 4 6 6 2-2"/><path d="M14 8l3 3"/></svg></span>営業<small></small></button>
+      <button type="button" class="cat" data-kw="コンサル"><span class="cat__ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>コンサル<small></small></button>
+      <button type="button" class="cat" data-kw="企画"><span class="cat__ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>企画<small></small></button>
+      <button type="button" class="cat" data-kw="マーケティング"><span class="cat__ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg></span>マーケティング<small></small></button>
+      <button type="button" class="cat" data-kw="総合職"><span class="cat__ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>総合職<small></small></button>
     </div>
   </section>
 
@@ -1168,6 +1360,61 @@
           <span>条件に合う募集が見つからないときは、非公開のものを含めてお探しします。</span>
           <a class="line-btn" href="https://line.me/R/ti/p/@697nxhbt?oat_content=url&ts=08302134" target="_blank" rel="noopener noreferrer" data-line-cta="shinsotsu-empty"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span>LINEで希望を伝える</span></a>
         </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== はじめての方へ：新卒とインターンの違い（比較図）＋よくある質問 ===== -->
+  <div class="learn">
+    <section class="guide" aria-labelledby="vsTitle">
+      <div class="guide__h">
+        <h2 id="vsTitle">新卒とインターンのちがい</h2>
+        <p>このサイトでは、どちらの募集も探せます。</p>
+      </div>
+      <div class="vs">
+        <div class="vs__card vs__card--grad">
+          <div class="vs__top">
+            <span class="vs__ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/><path d="M22 9v5"/></svg></span>
+            <div><h3>新卒</h3><p>卒業したあと、正社員として働く募集</p></div>
+          </div>
+          <ul class="vs__list">
+            <li>「27卒」「28卒」など、卒業する年ごとに募集があります。</li>
+            <li>エントリーシートや面接を経て、内定が決まります。</li>
+            <li>入社してからの研修や配属のしかたは、会社ごとに違います。</li>
+          </ul>
+        </div>
+        <div class="vs__mid" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7l4 4-4 4"/><path d="M3 11h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/></svg>
+          <span>つながることも</span>
+        </div>
+        <div class="vs__card vs__card--intern">
+          <div class="vs__top">
+            <span class="vs__ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M12 12v3"/></svg></span>
+            <div><h3>インターン</h3><p>在学中に、実際の仕事を体験する募集</p></div>
+          </div>
+          <ul class="vs__list">
+            <li>学年を問わず参加できる募集もあります。</li>
+            <li>授業と両立しながら、決まった曜日だけ働く形もあります。</li>
+            <li>インターンで経験したことは、本選考で話せるエピソードになります。</li>
+          </ul>
+        </div>
+      </div>
+      <p class="vs__note">条件は募集ごとに違います。くわしくは各求人のページをご覧ください。</p>
+    </section>
+
+    <section class="guide" aria-labelledby="faqTitle">
+      <div class="guide__h"><h2 id="faqTitle">よくある質問</h2></div>
+      <div class="faq">
+        <details><summary>まだ志望する業界が決まっていません。相談できますか？</summary>
+          <p>はい、大丈夫です。決まっていない段階でのご相談がいちばん多いくらいです。興味のあることや、苦手なことからお話を伺い、一緒に方向性を考えます。</p></details>
+        <details><summary>利用にお金はかかりますか？</summary>
+          <p>かかりません。費用は採用する企業が負担しているため、学生のみなさんは無料でご利用いただけます。</p></details>
+        <details><summary>応募すると、すぐに面接になりますか？</summary>
+          <p>いいえ。応募いただくと担当者からご連絡し、求人の内容や選考の流れをご説明してから進めます。気になることがあれば、その時点で遠慮なくお聞きください。</p></details>
+        <details><summary>インターンの募集だけを探せますか？</summary>
+          <p>はい。上の「人気の条件」の「インターン」か、絞り込みの「区分」で「インターン」を選ぶと、インターンの募集だけが表示されます。</p></details>
+        <details><summary>自分の卒業年の求人だけを見たいです。</summary>
+          <p>絞り込みの「対象卒業年」で選べます。卒業年が書かれていない求人は「記載なし」に入っているので、あわせてご覧ください。</p></details>
       </div>
     </section>
   </div>
@@ -2627,6 +2874,24 @@ $("#heroQuick").addEventListener("click",e=>{
   const cond={y27:["gradYears","27卒"], y28:["gradYears","28卒"], intern:["kubun","インターン"]};
   Object.entries(cond).forEach(([hq,[k,v]])=>{
     if(!has(k,v)) document.querySelector(`#heroQuick button[data-hq="${hq}"]`)?.remove();
+  });
+})();
+
+/* 職種タイル（はじめての方へ）。押すとキーワード検索に流す。0件になる職種は出さない */
+(function initCatTiles(){
+  const box=$("#catTiles"); if(!box) return;
+  const hit=kw=>JOBS.filter(j=>j._hay.includes(kw.toLowerCase())).length;
+  box.querySelectorAll(".cat").forEach(b=>{
+    const n=hit(b.dataset.kw);
+    if(!n){ b.remove(); return; }
+    b.querySelector("small").textContent=n+"件";
+  });
+  if(!box.children.length){ box.closest(".guide")?.remove(); return; }
+  box.addEventListener("click",e=>{
+    const b=e.target.closest(".cat"); if(!b) return;
+    const v=b.dataset.kw;
+    $("#q").value=v; state.q=v; apply(); scrollToResults();
+    track("search",{search_term:v, results:filtered.length, from:"cat_tile"});
   });
 })();
 
