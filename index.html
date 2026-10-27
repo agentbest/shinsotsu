@@ -476,6 +476,7 @@
     flex:none; font-size:10.5px; font-weight:800; letter-spacing:.08em; line-height:1;
     padding:4px 7px; border-radius:5px; background:var(--cta); color:var(--cta-ink);
   }
+  .dt-posted{display:flex; align-items:center; gap:8px; margin:0 0 10px; font-size:12.5px; color:var(--ink-3)}
   .jrow__co{font-size:13px; font-weight:700; color:var(--accent); min-width:0; overflow-wrap:anywhere}
   /* 企業ロゴ。画像が無い企業は社名の頭文字タイルにする。
      ⚠ 外部の favicon サービスは使わない（訪問者の閲覧履歴が第三者に渡るため）。 */
@@ -2441,6 +2442,8 @@ function logoHtml(j, extra){
   if(j.logo) return `<span class="${cls} jrow__logo--img"><img src="${esc(j.logo)}" alt="" loading="lazy" decoding="async"></span>`;
   return `<span class="${cls}" aria-hidden="true">${esc(coInitial(j.company))}</span>`;
 }
+/* 掲載開始日（createdAt＝Airtable の作成日。新卒は一括投入が無いのでそのまま使う）を「2026年10月10日」で出す */
+function fmtPosted(d){ const m=String(d||"").match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[1]}年${+m[2]}月${+m[3]}日`:""; }
 function rowHtml(j){
   const tags=[];
   if(j.kubun && j.kubun!=="中途") tags.push(`<span class="tag tag--kubun">${esc(j.kubun)}</span>`);
@@ -2461,6 +2464,7 @@ function rowHtml(j){
       <dt>想定年収</dt><dd><span class="jrow__sal">${esc(fmtSalary(j))}</span></dd>
       ${j.locShort?`<dt>勤務地</dt><dd>${esc(j.locShort)}</dd>`:""}
       ${j.empBand?`<dt>従業員数</dt><dd>${esc(j.empBand)}</dd>`:""}
+      ${j.createdAt?`<dt>掲載開始日</dt><dd>${esc(fmtPosted(j.createdAt))}</dd>`:""}
     </dl>
     <div class="jrow__act">
       <a class="btn-detail" href="${esc(jobHref(j))}" data-job="${esc(j.id)}">詳細を見る</a>
@@ -2693,6 +2697,7 @@ function openDetail(id){
     <div class="dt-head">
       <div class="dt-co-row">${logoHtml(j,"jrow__logo--lg")}<p class="dt-co">${esc(j.company||"企業非公開")}</p></div>
       <h1 class="dt-title" id="pdTitle">${esc(jobName(j))}</h1>
+      ${j.createdAt?`<p class="dt-posted">掲載開始日 ${esc(fmtPosted(j.createdAt))}</p>`:""}
       <div class="pd-tags">${tags.join("")}</div>
     </div>
     ${coSec}
