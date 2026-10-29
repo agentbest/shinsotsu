@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /apply.html
+Disallow: /?
+
+Sitemap: https://shinsotsu.agent-best.net/sitemap.xml

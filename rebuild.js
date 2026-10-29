@@ -215,3 +215,7 @@ if(jobs){
   }
 }
 
+
+/* 検索エンジン向けの静的ページ（job/<求人ID>/・sitemap.xml・robots.txt・assets/site.css）。2026-10-29〜。
+   index.html は求人詳細を JS で開くため、これが無いと Google からはトップ1ページしか見えない。中身は static-pages.js */
+if(jobs) require('./static-pages.js').build(dir, jobs);

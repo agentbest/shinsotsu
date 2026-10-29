@@ -24,6 +24,17 @@ template.html / apply-template.html / data/jobs.json を編集
 |---|---|---|
 | `index.html` | `template.html` | `__JOBS_DATA__` ＝ 新卒・インターン求人の全項目 |
 | `apply.html` | `apply-template.html` | `__JOBS_MINI__` ＝ ID・企業名・職種名・年収**だけ** |
+| `job/<求人ID>/index.html` | `job-template.html` | 求人1件のページ・JobPosting 構造化データ（`static-pages.js`。2026-10-29〜） |
+| `sitemap.xml` / `robots.txt` / `assets/site.css` | — | `static-pages.js` が作る。`site.css` は `template.html` の `<style>` の写し |
+
+### 求人ページ（検索エンジン向け・2026-10-29）
+それまで求人は検索画面の中（`?job=`）でしか開けず、Google からはトップ1ページしか見えていなかった。jobsite の `static-pages.js` を新卒向けに絞って移植した。
+- 掲載が終わった求人のページは `rebuild.js` のたびに消える（404）。sitemap の求人の lastmod は掲載開始日
+- 検索画面で求人を開くと canonical が `/job/<求人ID>/` に切り替わり、シェア・LINE の求人URLも静的ページになる（`setCanonical()` / `jobUrl()`）
+- `robots.txt` は `/apply.html` と `/?`（`?job=`・`?tag=` 付きトップ）を巡回させない（jobs・skill と同じ）
+- 応募先・Calendly・LINE・CTAの注記・担当者紹介は `template.html` の定数と `<p class="pd-ctanote">` `<p class="bio">` を読む。書き方を変えるとビルドが止まる
+- ⚠ ヘッダー・フッターは `template.html` と `job-template.html` の2か所。直すときは両方
+- Search Console には `https://shinsotsu.agent-best.net/sitemap.xml` を送信済み（URLプレフィックスのプロパティ `https://shinsotsu.agent-best.net/`）
 
 ## データ元と「新卒だけにする仕組み」
 
