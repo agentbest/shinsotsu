@@ -108,6 +108,9 @@ function prefsOf(j){
 }
 /* 郵便番号つきの住所（「〒220-8509 神奈川県横浜市西区…」）が勤務地に書かれていれば postalCode・addressLocality・streetAddress も入れる（2026-11-24。jobsite の postalPlaces() の写し） */
 const PREF_SLUG = Object.fromEntries(PREFS.map(p => [p, 1]));
+/* 勤務地の原文に「都道府県＋市区町村」と並んで書かれたものも拾う（jobs の static-pages.js と同じ規則・2026-11-25） */
+const LOC_RE = /(北海道|東京都|大阪府|京都府|[一-龥]{2,3}県)\s*([一-龥々ぁ-んァ-ヶー]{1,8}?(?:区|町|市(?!市)|村(?!市)))/g;  /* 市・村の後ろの否定先読みは「四日市市」「羽村市」を途中で切らないため */
+const LOC_NG = new Set(['地', '全', '各', '同', '近隣', '周辺', '他', '都', '府', '県', '首都', '都心', '内', '内の']);
 /* 郵便番号つきの住所。〒の直後（改行・空白・「/」をはさんでもよい）に都道府県から始まる住所が続くものだけ */
 const ZIP_RE = /〒\s*(\d{3})\s*[-ー－‐―]\s*(\d{4})[\s\/／]*(北海道|東京都|大阪府|京都府|[一-龥]{2,3}県)([^\n]*)/g;
 const CITY_HEAD = /^((?:[一-龥々ぁ-んァ-ヶー]{1,5}郡)?[一-龥々ぁ-んァ-ヶー]{1,6}?(?:市(?!市)(?:[一-龥々ぁ-んァ-ヶー]{1,4}?区)?|区|町|村))(.+)$/;
@@ -135,6 +138,19 @@ function jobPlaces(j){
   for(const a of postalPlaces(j.location)){
     if(!prefs.includes(a.pref) || out.some(p => p.address.streetAddress === a.street || (p.address.addressRegion === a.pref && p.address.addressLocality === a.city))) continue;
     out.push({ '@type': 'Place', address: { '@type': 'PostalAddress', addressCountry: 'JP', addressRegion: a.pref, addressLocality: a.city, streetAddress: a.street, postalCode: a.zip } });
+  }
+  for(const m of plain(j.location).matchAll(LOC_RE)){
+    /* 「勤務地：静岡県静岡県袋井市」のように県名が重なると市区町村側に県名が入るので、頭の県名を外して付け替える */
+    let pref = m[1], city = m[2];
+    for(let dup; (dup = Object.keys(PREF_SLUG).find(p => city.startsWith(p))); ){ pref = dup; city = city.slice(dup.length); }
+    /* 町・村は「〇〇郡〇〇町」と書かれたものだけ（「東京都永田町」「大阪府本町」のような町名を市区町村と取り違えないため） */
+    if(/[町村]$/.test(city) && !city.includes('郡')) continue;
+    /* 東京都以外の「〇〇区」は政令市の区。市の名前が無いと所在地として不完全なので拾わない */
+    if(/区$/.test(city) && pref !== '東京都') continue;
+    if(!/^[一-龥々ぁ-んァ-ヶー]+[市区町村]$/.test(city) || /[都道府県]$/.test(city.slice(0, -1)) || /メトロ|駅|線/.test(city)) continue;
+    if(!PREF_SLUG[pref] || (prefs.length && !prefs.includes(pref)) || LOC_NG.has(city.slice(0, -1))) continue;
+    if(out.some(x => x.address.addressRegion === pref && String(x.address.addressLocality || '').startsWith(city))) continue;
+    out.push({ '@type': 'Place', address: { '@type': 'PostalAddress', addressCountry: 'JP', addressRegion: pref, addressLocality: city } });
   }
   prefs.forEach(p => { if(!out.some(x => x.address.addressRegion === p)) out.push({ '@type': 'Place', address: { '@type': 'PostalAddress', addressCountry: 'JP', addressRegion: p } }); });
   out.splice(10);
