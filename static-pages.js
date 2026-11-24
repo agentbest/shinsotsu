@@ -163,10 +163,16 @@ function jobPage(C, tpl, j, related){
   const metaRow = (k, v) => v ? `<dt>${esc(k)}</dt><dd>${esc(mdUnesc(v))}</dd>` : '';
   const url = (typeof j.url === 'string' && /^https?:\/\//.test(j.url)) ? j.url : null;
   const siteRow = url ? `<dt>企業サイト</dt><dd><a href="${esc(url)}" target="_blank" rel="noopener nofollow">${esc(url.replace(/^https?:\/\//, '').replace(/\/$/, ''))}</a></dd>` : '';
-  const coMeta = [metaRow('所在地', j.companyAddress), metaRow('従業員数', j.employees), metaRow('上場区分', j.listedStatus), siteRow].join('');
+  /* 住所は郵便番号つきで1行に（JobPosting と同じ住所を画面にも出す・2026-11-24。jobs と違い一覧ページが無いのでリンクはしない） */
+  const addrText = a => `${a.postalCode ? `〒${a.postalCode} ` : ''}${a.addressRegion || ''}${a.addressLocality || ''}${a.streetAddress || ''}`;
+  const hqPlace = postalPlaces(j.companyAddress)[0];
+  const hqRow = hqPlace ? metaRow('所在地', addrText({ postalCode: hqPlace.zip, addressRegion: hqPlace.pref, addressLocality: hqPlace.city, streetAddress: hqPlace.street })) : metaRow('所在地', j.companyAddress);
+  const workAddrs = jobPlaces(j).map(p => p.address).filter(a => a.addressLocality);
+  const workRow = workAddrs.length ? `<dt>勤務地の住所</dt><dd>${workAddrs.map(a => esc(addrText(a))).join('<br>')}</dd>` : '';
+  const coMeta = [hqRow,metaRow('従業員数', j.employees), metaRow('上場区分', j.listedStatus), siteRow].join('');
   const coBody = j.companyInfo ? `<div class="rich">${rich(j.companyInfo)}</div>` : '';
   const coSec = (coBody || coMeta) ? `<div class="pd-sec"><h3>企業情報</h3>${coBody}${coMeta ? `<dl class="pd-meta">${coMeta}</dl>` : ''}</div>` : '';
-  const reqMeta = [metaRow('対象卒業年', grads), metaRow('給与（原文）', j.salaryRaw), metaRow('勤務地', j.location), metaRow('勤務時間', j.workHours), metaRow('休日・休暇', j.holidays), metaRow('福利厚生', j.benefits)].join('');
+  const reqMeta = [metaRow('対象卒業年', grads), metaRow('給与（原文）', j.salaryRaw), workRow, metaRow('勤務地', j.location),metaRow('勤務時間', j.workHours), metaRow('休日・休暇', j.holidays), metaRow('福利厚生', j.benefits)].join('');
 
   const consult = (() => {
     const p = new URLSearchParams(); p.set('a1', `求人サイトを見て相談したいこと：${co}${co && name ? ' / ' : ''}${name}`);
@@ -347,4 +353,9 @@ function build(root, jobs){
   console.log(`sitemap.xml を書き出しました: ${urls.length} URL`);
 }
 
-module.exports = { build };
+/* 市区町村（検索画面の「市区町村」の絞り込み）。jobs の jobCities と同じ規則（政令市は区をまとめて市・値は「東京都港区」）。2026-11-24 */
+function jobCities(j){
+  const unit = c => { const m = String(c || '').match(/^(.+?市)(.+区)$/); return m ? m[1] : String(c || ''); };
+  return [...new Set(jobPlaces(j).map(p => p.address).filter(a => a.addressRegion && a.addressLocality).map(a => a.addressRegion + unit(a.addressLocality)))];
+}
+module.exports = { build, jobCities };

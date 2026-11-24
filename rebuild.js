@@ -85,6 +85,12 @@ function newGradOnly(jobs){
      画像は assets/logos/ に置いて、そのパスを logos.json に書く（node fetch-logos.js）。
    ⚠ jobs.agent-best.net（jobsite）側に同じ関数がある。片方だけ直すと、
      同じ企業のロゴが片方のサイトにだけ出る。 */
+/* 検索画面の「市区町村」（template.html の facet cities）。static-pages.js の jobCities で求人ごとに付ける（2026-11-24・jobs と同じ規則） */
+function attachCities(jobs){
+  const { jobCities } = require('./static-pages');
+  jobs.forEach(j => { const cs = jobCities(j); if(cs.length) j.cities = cs; else delete j.cities; });
+  return jobs;
+}
 function attachLogos(jobs){
   const logoPath = path.join(dir, 'data', 'logos.json');
   if(!fs.existsSync(logoPath)){
@@ -154,7 +160,7 @@ function attachEmployees(jobs){
 }
 
 const jobs = build('jobs.json', 'template.html', 'index.html', '__JOBS_DATA__', [],
-  data => attachEmployees(attachLogos(newGradOnly(data))));
+  data => attachCities(attachEmployees(attachLogos(newGradOnly(data)))));
 if(jobs){
   const by = {};
   jobs.forEach(j => { by[j.kubun] = (by[j.kubun]||0)+1; });
