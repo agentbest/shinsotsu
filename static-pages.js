@@ -106,8 +106,38 @@ function prefsOf(j){
   const loc = String(j.location || '');
   return PREFS.filter(x => loc.includes(x));
 }
+/* 郵便番号つきの住所（「〒220-8509 神奈川県横浜市西区…」）が勤務地に書かれていれば postalCode・addressLocality・streetAddress も入れる（2026-11-24。jobsite の postalPlaces() の写し） */
+const PREF_SLUG = Object.fromEntries(PREFS.map(p => [p, 1]));
+/* 郵便番号つきの住所。〒の直後（改行・空白・「/」をはさんでもよい）に都道府県から始まる住所が続くものだけ */
+const ZIP_RE = /〒\s*(\d{3})\s*[-ー－‐―]\s*(\d{4})[\s\/／]*(北海道|東京都|大阪府|京都府|[一-龥]{2,3}県)([^\n]*)/g;
+const CITY_HEAD = /^((?:[一-龥々ぁ-んァ-ヶー]{1,5}郡)?[一-龥々ぁ-んァ-ヶー]{1,6}?(?:市(?!市)(?:[一-龥々ぁ-んァ-ヶー]{1,4}?区)?|区|町|村))(.+)$/;
+function postalPlaces(text){
+  const out = [];
+  const norm = String(text || '').replace(/\r/g, '').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ');
+  for(const m of norm.matchAll(ZIP_RE)){
+    const pref = m[3];
+    /* 住所の続きは「／」「（」「・アクセス」などで切る */
+    const rest = m[4].split(/[\/／（(【▍◆■※]|\s{2,}|アクセス/)[0].replace(/^[\s:：]+/, '').replace(/[)）\]】」]+\s*$/, '').trim();
+    const c = rest.match(CITY_HEAD);
+    if(!PREF_SLUG[pref] || !c) continue;
+    const street = c[2].trim().slice(0, 80);
+    if(!/\d|丁目|番地/.test(street)) continue;   /* 番地の無いものは住所として不完全なので使わない */
+    out.push({ pref, city: c[1], zip: `${m[1]}-${m[2]}`, street });
+  }
+  return out;
+}
 function jobPlaces(j){
-  const out = prefsOf(j).slice(0, 10).map(p => ({ '@type': 'Place', address: { '@type': 'PostalAddress', addressCountry: 'JP', addressRegion: p } }));
+  const prefs = prefsOf(j), out = [];
+  /* Airtable の 勤務地_〜 の4列（2026-11-24〜）が正。入っていれば最初の Place にする */
+  const ad = j.addr;
+  if(ad && PREF_SLUG[ad.pref]) out.push({ '@type': 'Place', address: Object.assign({ '@type': 'PostalAddress', addressCountry: 'JP', addressRegion: ad.pref },
+    ad.city ? { addressLocality: ad.city } : {}, ad.street ? { streetAddress: ad.street } : {}, /^\d{3}-\d{4}$/.test(ad.zip || '') ? { postalCode: ad.zip } : {}) });
+  for(const a of postalPlaces(j.location)){
+    if(!prefs.includes(a.pref) || out.some(p => p.address.streetAddress === a.street || (p.address.addressRegion === a.pref && p.address.addressLocality === a.city))) continue;
+    out.push({ '@type': 'Place', address: { '@type': 'PostalAddress', addressCountry: 'JP', addressRegion: a.pref, addressLocality: a.city, streetAddress: a.street, postalCode: a.zip } });
+  }
+  prefs.forEach(p => { if(!out.some(x => x.address.addressRegion === p)) out.push({ '@type': 'Place', address: { '@type': 'PostalAddress', addressCountry: 'JP', addressRegion: p } }); });
+  out.splice(10);
   return out.length ? out : [{ '@type': 'Place', address: { '@type': 'PostalAddress', addressCountry: 'JP' } }];
 }
 const VALID_THROUGH = (() => { const d = new Date(Date.now() + 9 * 3600e3); const e = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 2, 0)); return e.toISOString().slice(0, 10) + 'T23:59:59+09:00'; })();
@@ -230,10 +260,13 @@ function jobPage(C, tpl, j, related){
   if(j.createdAt) ld.datePosted = j.createdAt.slice(0, 10);
   if(j.logo) ld.hiringOrganization.logo = `${SITE}/${j.logo}`;
   if(j.salaryMin != null || j.salaryMax != null){
+    /* 下限だけの求人（「600万円〜」）は value だけにする。minValue だけ出すと Search Console が「maxValue がありません」と警告するため（2026-11-24） */
     const v = { '@type': 'QuantitativeValue', unitText: 'YEAR' };
-    if(j.salaryMin != null) v.minValue = j.salaryMin * 10000;
-    if(j.salaryMax != null) v.maxValue = j.salaryMax * 10000;
     if(j.salaryMin != null && j.salaryMax == null) v.value = j.salaryMin * 10000;
+    else {
+      if(j.salaryMin != null) v.minValue = j.salaryMin * 10000;
+      if(j.salaryMax != null) v.maxValue = j.salaryMax * 10000;
+    }
     ld.baseSalary = { '@type': 'MonetaryAmount', currency: 'JPY', value: v };
   }
   const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
